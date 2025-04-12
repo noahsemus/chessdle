@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import styled, { createGlobalStyle } from "styled-components";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 // --- Constants ---
 const LICHESS_DAILY_PUZZLE_URL = "https://lichess.org/api/puzzle/daily";
@@ -764,9 +764,9 @@ const GlobalStyle = createGlobalStyle`
     --neutral-600: #607d8b;
     --neutral-700: #546e7a;
     --neutral-800: #455a64;
-    --neutral-900: #37474f; /* Feedback Yellow Text */
+    --neutral-900: #37474f;
 
-    /* Semantic Mapping (Dark Theme applied by default) */
+    /* Semantic Mapping */
     --background-primary: var(--dark-green-900);
     --background-secondary: var(--dark-green-800);
     --background-tertiary: var(--dark-green-700);
@@ -775,11 +775,11 @@ const GlobalStyle = createGlobalStyle`
     --border-color: var(--dark-green-700);
     --accent-primary: var(--dark-green-400);
     --accent-secondary: var(--orange-500);
-    --shadow-color-rgba: rgba(0, 20, 15, 0.5); /* Adjusted shadow */
+    --shadow-color-rgba: rgba(0, 20, 15, 0.5);
 
     --feedback-green: var(--dark-green-500);
     --feedback-yellow: var(--orange-500);
-    --feedback-red: #ef4444; /* Keep specific red */
+    --feedback-red: #ef4444; 
     --feedback-yellow-text: var(--neutral-900);
 
     --board-light: var(--dark-green-300);
@@ -789,14 +789,14 @@ const GlobalStyle = createGlobalStyle`
     --button-primary-hover-bg: var(--dark-green-500);
     --button-secondary-bg: var(--accent-secondary);
     --button-secondary-hover-bg: var(--orange-600);
-    --button-text: var(--neutral-100); /* White text on buttons */
+    --button-text: var(--neutral-100); 
     --button-disabled-opacity: 0.6;
 
     --message-won-bg: var(--dark-green-800);
     --message-won-text: var(--dark-green-200);
     --message-won-border: var(--dark-green-500);
-    --message-lost-bg: #5f2120; /* Keep specific dark red */
-    --message-lost-text: #fecaca; /* Keep specific light red */
+    --message-lost-bg: #5f2120; 
+    --message-lost-text: #fecaca; 
     --message-lost-border: var(--feedback-red);
   }
 
@@ -804,8 +804,8 @@ const GlobalStyle = createGlobalStyle`
 
   body {
     font-family: 'National Park', sans-serif;
-    background-color: var(--background-primary); /* Use semantic variable */
-    color: var(--text-primary); /* Use semantic variable */
+    background-color: var(--background-primary); 
+    color: var(--text-primary);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
