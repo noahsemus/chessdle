@@ -57,7 +57,6 @@ const HistoryContainer = styled.div`
   gap: 0.75rem;
   margin-bottom: 1rem;
 `;
-
 // Use transient props ($isLastAttempt, $isGameOver)
 const AttemptHistoryItem = styled.div`
   padding: 0.5rem;
@@ -68,7 +67,6 @@ const AttemptHistoryItem = styled.div`
     $isGameOver &&
     ` border-width: 2px; border-color: #3b82f6; `}
 `;
-
 const AttemptLabel = styled.p`
   font-size: 0.75rem;
   font-weight: 600;
@@ -83,7 +81,6 @@ const FeedbackList = styled.ul`
   padding: 0;
   margin: 0;
 `;
-
 // Use transient prop ($feedbackType)
 const FeedbackListItem = styled.li`
   padding: 0.125rem 0.5rem;
@@ -107,7 +104,6 @@ const FeedbackListItem = styled.li`
       ? "#1f2937"
       : "white"};
 `;
-
 const BoardWrapper = styled.div`
   max-width: 24rem;
   margin: 0 auto 1rem auto;
@@ -463,7 +459,7 @@ function App() {
     }
   };
 
-  // --- Submit and Validate Sequence --- (logic remains the same)
+  // --- Submit and Validate Sequence ---
   const handleSubmit = () => {
     if (
       !puzzle ||
@@ -496,26 +492,34 @@ function App() {
       userMoveSequence.length,
       solutionMovesUci.length
     );
+
     console.log(
       `\n--- Starting Validation for Attempt ${currentAttemptNumber} ---`
     );
+
     for (let i = 0; i < comparisonLength; i++) {
       const currentValidationFen = validationGame.fen();
       const userSan = userMoveSequence[i];
       const solutionUci = solutionMovesUci[i];
       let result = "red";
       let advanceStateSuccess = true;
+
       console.log(`\n[Index ${i}]`);
       console.log(`  FEN: ${currentValidationFen}`);
       console.log(`  User SAN: ${userSan || "N/A"}`);
       console.log(`  Solution UCI: ${solutionUci || "N/A"}`);
+
       const userMoveObject = userSan
         ? parseSanMove(currentValidationFen, userSan)
         : null;
       const solutionMoveObject = solutionUci ? parseUci(solutionUci) : null;
+
       console.log(`  Parsed User Move (SAN -> obj):`, userMoveObject);
       console.log(`  Parsed Solution Move (UCI -> obj):`, solutionMoveObject);
+
+      // Calculate Feedback
       if (userMoveObject && solutionMoveObject) {
+        // --- Green Check ---
         const isGreen =
           userMoveObject.from === solutionMoveObject.from &&
           userMoveObject.to === solutionMoveObject.to &&
@@ -524,8 +528,9 @@ function App() {
         if (isGreen) {
           result = "green";
         } else {
-          const pieceMatch = userMoveObject.from === solutionMoveObject.from;
-          const destMatch = userMoveObject.to === solutionMoveObject.to;
+          // --- Yellow Check (Standard) ---
+          const pieceMatch = userMoveObject.from === solutionMoveObject.from; // Correct piece instance?
+          const destMatch = userMoveObject.to === solutionMoveObject.to; // Correct destination square?
           console.log(
             `  pieceMatch (from squares): ${pieceMatch} (${userMoveObject.from} vs ${solutionMoveObject.from})`
           );
@@ -533,50 +538,94 @@ function App() {
             `  destMatch (to squares): ${destMatch} (${userMoveObject.to} vs ${solutionMoveObject.to})`
           );
           if ((pieceMatch || destMatch) && !(pieceMatch && destMatch)) {
+            // XOR logic
             result = "yellow";
           }
+          // If not Green or Yellow, result remains 'red'
         }
       } else {
+        // --- Handle Parsing Failure ---
         result = "red";
         console.log(
           `  Parsing failed or sequence length mismatch -> Defaulting to Red.`
         );
-        if (userSan && !userMoveObject)
+        // *** MODIFICATION: Check for Yellow override if user parse failed ***
+        if (userSan && !userMoveObject && solutionMoveObject) {
           console.log(
-            `  Reason: Could not parse user SAN "${userSan}". Check legality/turn.`
+            `  Reason: Could not parse user SAN "${userSan}". Checking for destination match override...`
           );
+          // Attempt to extract destination from SAN using regex
+          const sanDestMatch = userSan.match(/([a-h][1-8])\+?#?$/);
+          const userIntendedDest = sanDestMatch ? sanDestMatch[1] : null;
+
+          if (userIntendedDest) {
+            console.log(
+              `  Extracted intended destination from user SAN: "${userIntendedDest}"`
+            );
+            if (userIntendedDest === solutionMoveObject.to) {
+              console.log(
+                `  Destination match FOUND ("${userIntendedDest}" === "${solutionMoveObject.to}"). Overriding result to YELLOW.`
+              );
+              result = "yellow"; // Override to Yellow based on destination match
+            } else {
+              console.log(
+                `  Destination match NOT found ("${userIntendedDest}" !== "${solutionMoveObject.to}"). Result remains RED.`
+              );
+            }
+          } else {
+            console.log(
+              `  Could not extract destination from user SAN "${userSan}". Result remains RED.`
+            );
+          }
+        } else if (!userSan && solutionUci) {
+          console.log(`  Reason: User sequence ended early.`);
+        } else if (!solutionUci && userSan) {
+          console.log(`  Reason: Solution sequence ended early.`);
+        } else if (solutionUci && !solutionMoveObject) {
+          console.log(
+            `  Reason: Could not parse solution UCI "${solutionUci}".`
+          );
+        }
+        // *** MODIFICATION END ***
       }
+
       console.log(`  => Result for index ${i}: ${result.toUpperCase()}`);
       feedbackResults.push(result);
       if (result !== "green") {
         allCorrect = false;
       }
+
+      // Advance validation board state using the CORRECT solution move
       if (solutionUci) {
         let moveApplied = null;
         try {
           console.log(
             `  Advancing validation state with solution UCI: ${solutionUci}`
           );
-          moveApplied = validationGame.move(solutionUci);
+          moveApplied = validationGame.move(solutionUci); // Use UCI string
           if (!moveApplied) {
-            console.warn(`  Solution move ${i} returned null (illegal).`);
+            console.warn(
+              `  Solution move ${i} returned null (illegal). Validation state may be incorrect.`
+            );
             advanceStateSuccess = false;
             if (result !== "red") {
               feedbackResults[feedbackResults.length - 1] = "red";
               allCorrect = false;
             }
-            break;
+            break; // Exit the loop
           } else {
             console.log(`  State advanced. New FEN: ${validationGame.fen()}`);
           }
         } catch (e) {
-          console.warn(`  Solution move ${i} exception: ${e.message}.`);
+          console.warn(
+            `  Solution move ${i} exception: ${e.message}. Validation state may be incorrect.`
+          );
           advanceStateSuccess = false;
           if (result !== "red") {
             feedbackResults[feedbackResults.length - 1] = "red";
             allCorrect = false;
           }
-          break;
+          break; // Exit the loop
         }
       } else if (i < solutionMovesUci.length) {
         console.error(`Solution UCI missing at index ${i}`);
@@ -587,6 +636,7 @@ function App() {
         advanceStateSuccess = false;
       }
     } // End of validation loop
+
     while (feedbackResults.length < userMoveSequence.length) {
       console.warn(`User sequence longer than processed validation steps.`);
       feedbackResults.push("red");
