@@ -731,7 +731,7 @@ function App() {
 
 // --- Global Styles ---
 const GlobalStyle = createGlobalStyle`
-  @import url('https://fonts.googleapis.com/css2?family=National+Park&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=National+Park:wght@200..800&display=swap');
 
   /* CSS Variables for Theming */
   :root {
@@ -744,7 +744,7 @@ const GlobalStyle = createGlobalStyle`
     --dark-green-600: #00897b; /* Board Dark */
     --dark-green-700: #00796b; /* Border / Tertiary Bg */
     --dark-green-800: #00695c; /* Secondary Bg / Message Bg */
-    --dark-green-900: #004d40; /* Primary Bg */
+    --dark-green-900: #00251f; /* Primary Bg */
 
     --orange-100: #fff3e0;
     --orange-200: #ffe0b2;
@@ -803,7 +803,7 @@ const GlobalStyle = createGlobalStyle`
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'National Park', sans-serif;
+    font-family: 'National Park', serif;
     background-color: var(--background-primary); 
     color: var(--text-primary);
     line-height: 1.5;
@@ -820,20 +820,14 @@ const GlobalStyle = createGlobalStyle`
 const AppWrapper = styled.div`
   min-height: 100vh;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
 `;
 
 const Container = styled.div`
-  background-color: var(--background-secondary);
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 25px -5px var(--shadow-color-rgba, rgba(0, 0, 0, 0.4)),
-    0 8px 10px -6px var(--shadow-color-rgba, rgba(0, 0, 0, 0.4));
   padding: 2rem;
   max-width: 40rem;
   width: 100%;
-  border: 1px solid var(--border-color);
 `;
 
 const Title = styled.h1`
