@@ -2,23 +2,27 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import styled, { createGlobalStyle } from "styled-components";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // --- Constants ---
 const LICHESS_DAILY_PUZZLE_URL = "https://lichess.org/api/puzzle/daily";
 const MAX_ATTEMPTS = 5;
-const CORS_PROXY_URL = "https://api.allorigins.win/raw?url="; // Proxy for fetching data cross-origin
+const CORS_PROXY_URL = "https://api.allorigins.win/raw?url="; // CORS Proxy
 
 // --- Helper Functions ---
 
 /**
  * Parses Standard Algebraic Notation (SAN) using chess.js.
- * Requires the FEN string of the board *before* the move.
+ * Requires the FEN string of the board *before* the move for context.
  */
 const parseSanMove = (fenBeforeMove, san) => {
+  if (typeof Chess === "undefined") {
+    console.error("Chess.js library is not loaded.");
+    return null;
+  }
   const tempGame = new Chess(fenBeforeMove);
   try {
-    const moveDetails = tempGame.move(san); // Use strict parsing
+    const moveDetails = tempGame.move(san);
     if (!moveDetails) return null;
     return {
       piece: moveDetails.piece,
@@ -29,12 +33,16 @@ const parseSanMove = (fenBeforeMove, san) => {
       promotion: moveDetails.promotion,
     };
   } catch (e) {
-    return null; // Invalid SAN or illegal move
+    console.warn(
+      `Could not parse SAN move "${san}" from FEN "${fenBeforeMove}":`,
+      e.message
+    );
+    return null;
   }
 };
 
 /**
- * Parses Universal Chess Interface (UCI) notation string (e.g., "e2e4", "a7a8q").
+ * Parses Universal Chess Interface (UCI) notation string.
  */
 const parseUci = (uci) => {
   if (!uci || uci.length < 4 || uci.length > 5) return null;
@@ -48,9 +56,7 @@ const parseUci = (uci) => {
   return { from, to, promotion };
 };
 
-// --- Animation Variants ---
-
-// Variants for the feedback list container (stagger effect)
+// --- Animation Variants (Framer Motion) ---
 const listVariants = {
   visible: {
     opacity: 1,
@@ -58,14 +64,10 @@ const listVariants = {
   },
   hidden: { opacity: 0 },
 };
-
-// Variants for individual feedback list items
 const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } },
   hidden: { opacity: 0, y: 10 },
 };
-
-// Variants for the win/loss message appearance/disappearance
 const messageVariants = {
   visible: {
     opacity: 1,
@@ -82,18 +84,24 @@ const messageVariants = {
 // --- Components ---
 
 /**
- * Renders the animated feedback UI for a single attempt's move sequence.
+ * Renders the animated feedback UI (colored squares) for a single attempt's move sequence.
  */
 function AnimatedFeedbackDisplay({ userSequence, feedback }) {
   if (
-    !feedback ||
-    !userSequence ||
+    !Array.isArray(feedback) ||
+    !Array.isArray(userSequence) ||
     userSequence.length !== feedback.length ||
     feedback.length === 0
   ) {
     return (
-      <div style={{ fontSize: "0.75rem", color: "red" }}>
-        Invalid feedback data
+      <div
+        style={{
+          fontSize: "0.75rem",
+          color: "var(--feedback-red, #ef4444)",
+          padding: "0.25rem",
+        }}
+      >
+        Invalid feedback data provided.
       </div>
     );
   }
@@ -102,14 +110,13 @@ function AnimatedFeedbackDisplay({ userSequence, feedback }) {
     <FeedbackList variants={listVariants} initial="hidden" animate="visible">
       {userSequence.map((move, index) => (
         <FeedbackListItem
-          key={index}
+          key={`${index}-${move}`}
           $feedbackType={feedback[index]}
           variants={itemVariants}
           layout
-          layoutId={index}
         >
           {userSequence.length > 1 ? `${index + 1}. ` : ""}
-          {userSequence[index] || "?"}
+          {move || "?"}
         </FeedbackListItem>
       ))}
     </FeedbackList>
@@ -118,23 +125,26 @@ function AnimatedFeedbackDisplay({ userSequence, feedback }) {
 
 /**
  * Main application component for the Chessdle game.
+ * Handles fetching puzzles, game state, user input, validation, and rendering.
  */
 function App() {
-  // State variables
-  const [puzzle, setPuzzle] = useState(null);
-  const [game, setGame] = useState(null); // chess.js instance primarily for validation/setup
+  // --- State Variables ---
+  const [puzzle, setPuzzle] = useState(null); // Current puzzle data
+  const [game, setGame] = useState(null); // chess.js instance for setup/validation
   const [currentFen, setCurrentFen] = useState("start"); // FEN for the displayed board
-  const [userMoveSequence, setUserMoveSequence] = useState([]); // User's moves in SAN for the current attempt
-  const [attemptsHistory, setAttemptsHistory] = useState([]); // History of attempts [{ sequence, feedback }]
-  const [currentAttemptNumber, setCurrentAttemptNumber] = useState(1);
+  const [userMoveSequence, setUserMoveSequence] = useState([]); // User's moves for the current attempt (SAN)
+  const [attemptsHistory, setAttemptsHistory] = useState([]); // History of past attempts [{ sequence, feedback }]
+  const [currentAttemptNumber, setCurrentAttemptNumber] = useState(1); // Current attempt count
   const [gameState, setGameState] = useState("loading"); // 'loading', 'playing', 'won', 'lost', 'error'
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState(""); // Error messages
+
+  // --- Effects ---
 
   // Fetch and process the daily puzzle on component mount
   useEffect(() => {
     const fetchDailyPuzzle = async () => {
       setGameState("loading");
-      // Reset all game state for a new puzzle
+      // Reset state for new puzzle
       setErrorMessage("");
       setAttemptsHistory([]);
       setCurrentAttemptNumber(1);
@@ -147,40 +157,61 @@ function App() {
         ? CORS_PROXY_URL + encodeURIComponent(LICHESS_DAILY_PUZZLE_URL)
         : LICHESS_DAILY_PUZZLE_URL;
 
+      console.log("Fetching daily puzzle from:", targetUrl);
+
       try {
         const response = await fetch(targetUrl);
-        if (!response.ok)
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(
+            `HTTP error! Status: ${response.status} - ${
+              response.statusText || "Failed to fetch"
+            }`
+          );
+        }
         const data = await response.json();
+        console.log("Raw puzzle data received:", data);
 
+        // --- Data Extraction & Validation ---
         let baseFen = data?.game?.fen;
         const pgn = data?.game?.pgn;
         const initialPly = data?.puzzle?.initialPly;
-        const solution = data?.puzzle?.solution; // Array of UCI moves
+        const solution = data?.puzzle?.solution;
 
-        // Step 1: Derive Base FEN from PGN if not directly provided by the API
+        if (!solution || !Array.isArray(solution) || solution.length === 0) {
+          throw new Error(
+            "Incomplete puzzle data: Solution is missing or empty."
+          );
+        }
         if (
           !baseFen &&
-          pgn &&
-          initialPly !== undefined &&
-          initialPly !== null
+          (!pgn || initialPly === undefined || initialPly === null)
         ) {
+          throw new Error(
+            "Incomplete puzzle data: Cannot determine starting FEN."
+          );
+        }
+
+        // --- Derive Base FEN from PGN if necessary ---
+        if (!baseFen) {
+          console.log("Attempting to derive FEN from PGN at ply:", initialPly);
           try {
+            if (typeof Chess === "undefined")
+              throw new Error("Chess.js not loaded for PGN parsing.");
             const tempChess = new Chess();
             tempChess.loadPgn(pgn, { sloppy: true });
             const history = tempChess.history();
             tempChess.reset();
-            // Replay moves to the specified ply
             for (let i = 0; i < initialPly; i++) {
-              if (!history[i]) throw new Error(`PGN history short at ply ${i}`);
+              if (!history[i])
+                throw new Error(`PGN history missing move at ply ${i}.`);
               tempChess.move(history[i]);
             }
-            // Lichess puzzles often require applying one more move (opponent's last move)
-            const nextMoveIndex = initialPly;
-            if (history[nextMoveIndex]) {
-              tempChess.move(history[nextMoveIndex]);
+            const opponentMoveIndex = initialPly;
+            if (history[opponentMoveIndex]) {
+              tempChess.move(history[opponentMoveIndex]);
             }
             baseFen = tempChess.fen();
+            console.log("Derived FEN from PGN:", baseFen);
           } catch (pgnError) {
             throw new Error(
               `Failed to derive FEN from PGN: ${pgnError.message}`
@@ -188,103 +219,149 @@ function App() {
           }
         }
 
-        // Step 2: Validate essential data and the FEN
-        if (!baseFen || !solution || solution.length === 0) {
-          throw new Error("Incomplete puzzle data (missing FEN or solution).");
-        }
+        // --- Validate Base FEN ---
         try {
+          if (typeof Chess === "undefined")
+            throw new Error("Chess.js not loaded for FEN validation.");
           new Chess(baseFen);
         } catch (fenValidationError) {
-          // Validate FEN format
           throw new Error(
             `Initial FEN ("${baseFen}") is invalid: ${fenValidationError.message}`
           );
         }
 
-        // Step 3: Correct FEN Turn Marker if necessary based on the first solution move
+        // --- Correct FEN Turn Marker if Necessary ---
+        // Checks if the first solution move is valid from the current FEN turn. Flips if not.
         let correctedFen = baseFen;
         const firstSolutionMoveUci = solution[0];
         const parsedFirstMove = parseUci(firstSolutionMoveUci);
-        if (!parsedFirstMove)
+        if (!parsedFirstMove) {
           throw new Error(
-            `Invalid first solution move format: ${firstSolutionMoveUci}`
+            `Invalid first solution move format received: ${firstSolutionMoveUci}`
           );
+        }
 
         let turnSeemsCorrect = false;
         try {
-          if (new Chess(baseFen).move(parsedFirstMove) !== null)
+          if (typeof Chess === "undefined")
+            throw new Error("Chess.js not loaded for turn check.");
+          if (new Chess(baseFen).move(parsedFirstMove) !== null) {
             turnSeemsCorrect = true;
+          }
         } catch (turnCheckError) {
-          /* Assume turn needs flipping */
+          console.warn(
+            "Initial turn check failed, likely need to flip turn marker:",
+            turnCheckError.message
+          );
         }
 
         if (!turnSeemsCorrect) {
+          console.log("Attempting to correct FEN turn marker...");
           const fenParts = baseFen.split(" ");
           if (fenParts.length >= 2) {
             const currentTurn = fenParts[1];
             const newTurn = currentTurn === "w" ? "b" : "w";
             fenParts[1] = newTurn;
             const flippedFen = fenParts.join(" ");
-            // Double-check if the move works with the flipped turn
             try {
-              if (new Chess(flippedFen).move(parsedFirstMove) !== null)
+              if (typeof Chess === "undefined")
+                throw new Error("Chess.js not loaded for flipped turn check.");
+              if (new Chess(flippedFen).move(parsedFirstMove) !== null) {
                 correctedFen = flippedFen;
+                console.log(
+                  "FEN turn successfully corrected to:",
+                  correctedFen
+                );
+              } else {
+                console.error(
+                  "Flipping FEN turn did not make the first solution move valid. Using original FEN:",
+                  baseFen
+                );
+                correctedFen = baseFen;
+              }
             } catch (flipCheckError) {
-              /* Stick with original if check fails */
+              console.error(
+                "Error checking move with flipped FEN. Using original FEN:",
+                flipCheckError.message
+              );
+              correctedFen = baseFen;
             }
           } else {
+            console.error(
+              "Could not parse FEN string to flip turn marker. Using original FEN:",
+              baseFen
+            );
             correctedFen = baseFen;
-          } // Fallback if FEN parsing fails
+          }
         }
 
-        // Step 4: Final Validation and State Update
+        // --- Final Validation and State Update ---
         let finalInitialFen = correctedFen;
         let chessInstance;
         try {
+          if (typeof Chess === "undefined")
+            throw new Error("Chess.js not loaded for final instance creation.");
           chessInstance = new Chess(finalInitialFen);
         } catch (fenError) {
           throw new Error(
-            `Invalid final FEN ("${finalInitialFen}"): ${fenError.message}`
+            `Invalid final FEN ("${finalInitialFen}") after processing: ${fenError.message}`
           );
         }
 
-        // Set the processed puzzle data into state
+        // --- Set Game State ---
+        const playerColor =
+          finalInitialFen.split(" ")[1] === "w" ? "white" : "black";
         setPuzzle({
-          id: data.puzzle.id || `unknown_${Date.now()}`,
-          rating: data.puzzle.rating || "N/A",
+          id:
+            data.puzzle?.id ||
+            `lichess_daily_${new Date().toISOString().split("T")[0]}`,
+          rating: data.puzzle?.rating || "N/A",
           initialFen: finalInitialFen,
           solution: solution,
-          playerColor:
-            finalInitialFen.split(" ")[1] === "w" ? "white" : "black",
+          playerColor: playerColor,
         });
         setGame(chessInstance);
         setCurrentFen(finalInitialFen);
         setGameState("playing");
+        console.log("Puzzle loaded successfully:", {
+          id: puzzle?.id,
+          rating: puzzle?.rating,
+          fen: finalInitialFen,
+          turn: playerColor,
+        });
       } catch (err) {
         console.error("Failed to fetch or process puzzle:", err);
         setErrorMessage(
-          `Failed to load daily puzzle: ${err.message || "Unknown error"}.`
+          `Failed to load daily puzzle: ${
+            err.message || "An unknown error occurred"
+          }. Please try refreshing.`
         );
         setGameState("error");
       }
     };
 
     fetchDailyPuzzle();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []); // Run only on mount
+
+  // --- Callbacks ---
 
   /**
-   * Handles piece drop events from the chessboard.
-   * Validates the move locally and updates the board and current sequence.
+   * Handles piece drop events from react-chessboard.
+   * Validates the move and updates state if legal.
    */
   const onDrop = useCallback(
     (sourceSquare, targetSquare, piece) => {
-      if (gameState !== "playing" || !puzzle) return false;
+      if (gameState !== "playing" || !puzzle || !currentFen) return false;
 
-      // Validate move against the *currently displayed* board state
+      if (typeof Chess === "undefined") {
+        console.error("Chess.js not loaded in onDrop callback.");
+        return false;
+      }
       const gameCopy = new Chess(currentFen);
       let moveResult = null;
+
       try {
-        // Attempt move, auto-promoting to queen for simplicity
+        // Attempt move, auto-promoting to queen
         moveResult = gameCopy.move({
           from: sourceSquare,
           to: targetSquare,
@@ -295,14 +372,18 @@ function App() {
         return false;
       }
 
-      if (moveResult === null) return false; // Illegal move
+      if (moveResult === null) {
+        console.log(`Illegal move attempted: ${sourceSquare}-${targetSquare}`);
+        return false; // Indicate illegal move
+      }
 
-      // Update displayed board and user's current move sequence
+      // Update state on valid move
+      console.log(`Valid move made: ${moveResult.san}`);
       setCurrentFen(gameCopy.fen());
       setUserMoveSequence((prev) => [...prev, moveResult.san]);
       return true; // Signal success to react-chessboard
     },
-    [currentFen, userMoveSequence, gameState, puzzle]
+    [currentFen, gameState, puzzle]
   );
 
   /**
@@ -310,6 +391,7 @@ function App() {
    */
   const handleResetInput = () => {
     if (!puzzle || gameState !== "playing") return;
+    console.log("Resetting current input sequence and board.");
     setCurrentFen(puzzle.initialFen);
     setUserMoveSequence([]);
   };
@@ -322,22 +404,36 @@ function App() {
     if (
       !puzzle ||
       !puzzle.solution ||
+      !puzzle.initialFen ||
       userMoveSequence.length === 0 ||
       gameState !== "playing"
-    )
+    ) {
+      console.warn(
+        "Submit attempt prevented: Invalid state or empty sequence."
+      );
       return;
+    }
+
+    console.log(
+      `Submitting attempt ${currentAttemptNumber}:`,
+      userMoveSequence
+    );
 
     const solutionMovesUci = puzzle.solution;
-    const feedbackResults = []; // Stores 'green', 'yellow', 'red'
+    const feedbackResults = [];
     let allCorrect = true;
-    let validationGame; // Use a separate chess instance for validation path
+    let validationGame; // Use a separate instance for validation
 
+    // --- Initialize Validation ---
     try {
-      if (!puzzle.initialFen) throw new Error("Initial FEN missing");
-      validationGame = new Chess(puzzle.initialFen); // Start from puzzle's initial state
+      if (typeof Chess === "undefined")
+        throw new Error("Chess.js not loaded for validation.");
+      validationGame = new Chess(puzzle.initialFen);
     } catch (err) {
       console.error("Validation instance creation error:", err);
-      setErrorMessage("Internal error during validation setup.");
+      setErrorMessage(
+        "Internal error during validation setup. Please refresh."
+      );
       setGameState("error");
       return;
     }
@@ -347,9 +443,9 @@ function App() {
       solutionMovesUci.length
     );
 
-    // Compare user moves to solution moves step-by-step
+    // --- Compare User Moves to Solution Step-by-Step ---
     for (let i = 0; i < comparisonLength; i++) {
-      const currentValidationFen = validationGame.fen(); // FEN before this move index
+      const currentValidationFen = validationGame.fen();
       const userSan = userMoveSequence[i];
       const solutionUci = solutionMovesUci[i];
       let result = "red"; // Default feedback
@@ -359,76 +455,79 @@ function App() {
         : null;
       const solutionMoveObject = solutionUci ? parseUci(solutionUci) : null;
 
-      // Calculate feedback (Green/Yellow/Red)
+      // --- Calculate Feedback (Green/Yellow/Red) ---
+      // Compares parsed user move (if valid) to the parsed solution move.
+      // Provides 'yellow' for partial matches (correct 'from' or 'to').
       if (userMoveObject && solutionMoveObject) {
-        const isGreen = // Exact match?
+        const isExactMatch =
           userMoveObject.from === solutionMoveObject.from &&
           userMoveObject.to === solutionMoveObject.to &&
           (userMoveObject.promotion || null) ===
             (solutionMoveObject.promotion || null);
-        if (isGreen) {
+
+        if (isExactMatch) {
           result = "green";
         } else {
-          // Partial match (Yellow)?
           const fromMatch = userMoveObject.from === solutionMoveObject.from;
           const toMatch = userMoveObject.to === solutionMoveObject.to;
-          if ((fromMatch || toMatch) && !(fromMatch && toMatch)) {
+          if (fromMatch !== toMatch) {
             // XOR
             result = "yellow";
           }
         }
       } else if (!userMoveObject && userSan && solutionMoveObject) {
-        // Heuristic: Check if illegal user move's *intended* destination matches solution (Yellow)
+        // Heuristic: Give yellow if user's *intended* destination (even if move was illegal) matches solution.
         const sanDestMatch = userSan.match(/([a-h][1-8])=?([qrbn])?[+#]?$/i);
         const userIntendedDest = sanDestMatch ? sanDestMatch[1] : null;
         if (userIntendedDest && userIntendedDest === solutionMoveObject.to) {
           result = "yellow";
         }
       }
-      // Else: remains 'red'
 
       feedbackResults.push(result);
-      if (result !== "green") allCorrect = false;
+      if (result !== "green") {
+        allCorrect = false;
+      }
 
-      // Advance internal validation board state using the *correct* solution move
+      // --- Advance Internal Validation Board State using the CORRECT solution move ---
       if (solutionUci && solutionMoveObject) {
         try {
           if (!validationGame.move(solutionMoveObject)) {
-            console.warn(
-              `Solution move ${i} (${solutionUci}) illegal from FEN "${currentValidationFen}".`
+            console.error(
+              `CRITICAL: Solution move ${i} (${solutionUci}) illegal from FEN "${currentValidationFen}".`
             );
-            if (result !== "red")
-              feedbackResults[feedbackResults.length - 1] = "red";
+            feedbackResults[feedbackResults.length - 1] = "red";
             allCorrect = false;
             break; // Stop validation if solution path breaks
           }
         } catch (e) {
           console.error(
-            `Error applying solution move ${i} (${solutionUci}): ${e.message}`
+            `Error applying solution move ${i} (${solutionUci}) during validation: ${e.message}.`
           );
-          if (result !== "red")
-            feedbackResults[feedbackResults.length - 1] = "red";
+          feedbackResults[feedbackResults.length - 1] = "red";
           allCorrect = false;
           break;
         }
       } else if (i < solutionMovesUci.length) {
         // Handle invalid solution UCI format
         console.error(
-          `Solution UCI at index ${i} ("${solutionUci}") is invalid.`
+          `CRITICAL: Solution UCI at index ${i} ("${
+            solutionUci || "undefined"
+          }") is invalid.`
         );
-        setErrorMessage("Internal error: Invalid solution data.");
+        setErrorMessage("Internal error: Invalid solution data received.");
         setGameState("error");
         return;
       }
-    } // End validation loop
+    } // --- End validation loop ---
 
-    // Mark any extra user moves as 'red'
+    // Mark any extra user moves as red
     while (feedbackResults.length < userMoveSequence.length) {
       feedbackResults.push("red");
       allCorrect = false;
     }
 
-    // Update history and game state
+    // --- Update Game State ---
     const newAttempt = {
       sequence: userMoveSequence,
       feedback: feedbackResults,
@@ -437,16 +536,23 @@ function App() {
 
     if (allCorrect && userMoveSequence.length === solutionMovesUci.length) {
       setGameState("won");
+      console.log("Game Won!");
     } else if (currentAttemptNumber >= MAX_ATTEMPTS) {
       setGameState("lost");
+      console.log("Game Lost - Max attempts reached.");
     } else {
       // Continue playing
       setGameState("playing");
       setCurrentAttemptNumber((prev) => prev + 1);
-      setUserMoveSequence([]); // Clear input for next attempt
+      setUserMoveSequence([]);
       if (puzzle) setCurrentFen(puzzle.initialFen); // Reset board display
+      console.log(
+        `Attempt ${currentAttemptNumber} submitted. Proceeding to attempt ${
+          currentAttemptNumber + 1
+        }.`
+      );
     }
-  }; // End handleSubmit
+  }; // --- End handleSubmit ---
 
   // --- Render Logic ---
   const isGameOver = gameState === "won" || gameState === "lost";
@@ -463,18 +569,23 @@ function App() {
     return (
       <AppWrapper>
         <Container>
-          <p style={{ color: "red", fontWeight: "bold" }}>Error:</p>
-          <p>{errorMessage}</p>
-          <p style={{ fontSize: "0.8em", color: "#555" }}>
-            Please try refreshing. Check console for details.
-          </p>
+          <InfoText
+            style={{
+              color: "var(--feedback-red, #ef4444)",
+              fontWeight: "bold",
+            }}
+          >
+            Error:
+          </InfoText>
+          <InfoText style={{ color: "var(--text-secondary, #a0a0a0)" }}>
+            {errorMessage}
+          </InfoText>
         </Container>
       </AppWrapper>
     );
   }
 
   if (!puzzle) {
-    // Should not happen if loading/error states handled
     return (
       <AppWrapper>
         <Container>Waiting for puzzle data...</Container>
@@ -482,6 +593,7 @@ function App() {
     );
   }
 
+  // --- Main Game Render ---
   return (
     <>
       <GlobalStyle />
@@ -491,37 +603,42 @@ function App() {
           <InfoText>Rating: {puzzle.rating}</InfoText>
           {!isGameOver && (
             <InfoText marginBottom="1rem">
-              Attempt {currentAttemptNumber} of {MAX_ATTEMPTS}. Enter the{" "}
+              Attempt {currentAttemptNumber} of {MAX_ATTEMPTS}. Find the{" "}
               {puzzle.solution.length}-move solution. Turn:{" "}
               <TurnText>{puzzle.playerColor}</TurnText>
             </InfoText>
           )}
 
-          {/* Display History */}
+          {/* Attempts History */}
           <HistoryContainer>
-            {attemptsHistory.map((attempt, index) => (
-              <AttemptHistoryItem
-                key={index}
-                $isLastAttempt={index === attemptsHistory.length - 1}
-                $isGameOver={isGameOver}
-                layout
-                layoutId={index}
-              >
-                <AttemptLabel>Attempt {index + 1}:</AttemptLabel>
-                <AnimatedFeedbackDisplay
-                  userSequence={attempt.sequence}
-                  feedback={attempt.feedback}
-                />
-              </AttemptHistoryItem>
-            ))}
+            <AnimatePresence initial={false}>
+              {attemptsHistory.map((attempt, index) => (
+                <AttemptHistoryItem
+                  key={index}
+                  $isLastAttempt={index === attemptsHistory.length - 1}
+                  $isGameOver={isGameOver}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <AttemptLabel>Attempt {index + 1}:</AttemptLabel>
+                  <AnimatedFeedbackDisplay
+                    userSequence={attempt.sequence}
+                    feedback={attempt.feedback}
+                  />
+                </AttemptHistoryItem>
+              ))}
+            </AnimatePresence>
           </HistoryContainer>
 
-          {/* Display Board & Controls only while playing */}
+          {/* Board & Controls (only shown while playing) */}
           {gameState === "playing" && (
             <>
               <BoardWrapper>
                 <Chessboard
-                  key={`${puzzle.id}-${currentAttemptNumber}`} // Force re-render on new attempt if needed
+                  key={`${puzzle.id}-${currentAttemptNumber}`}
                   id="ChessdleBoard"
                   position={currentFen}
                   onPieceDrop={onDrop}
@@ -529,12 +646,19 @@ function App() {
                   arePiecesDraggable={gameState === "playing"}
                   customBoardStyle={{
                     borderRadius: "4px",
-                    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
+                    boxShadow:
+                      "0 4px 15px var(--shadow-color-rgba, rgba(0, 0, 0, 0.2))",
                   }}
-                  customDarkSquareStyle={{ backgroundColor: "#769656" }}
-                  customLightSquareStyle={{ backgroundColor: "#eeeed2" }}
+                  customDarkSquareStyle={{
+                    backgroundColor: "var(--board-dark, #6b8f4b)",
+                  }}
+                  customLightSquareStyle={{
+                    backgroundColor: "var(--board-light, #c2d1b0)",
+                  }}
                 />
               </BoardWrapper>
+
+              {/* Current Input Sequence */}
               <CurrentSequenceDisplay>
                 <CurrentSequenceLabel>
                   Current sequence ({userMoveSequence.length}/
@@ -544,6 +668,8 @@ function App() {
                   {userMoveSequence.join(" ") || "(Drag pieces to make moves)"}
                 </CurrentSequenceMoves>
               </CurrentSequenceDisplay>
+
+              {/* Action Buttons */}
               <ControlsWrapper>
                 <StyledButton
                   onClick={handleResetInput}
@@ -566,11 +692,11 @@ function App() {
             </>
           )}
 
-          {/* Win/Loss Message Animation (using Framer Motion) */}
+          {/* Win/Loss Messages */}
           <AnimatePresence>
             {gameState === "won" && (
               <Message
-                key="win-message" // Required for AnimatePresence
+                key="win-message"
                 type="won"
                 variants={messageVariants}
                 initial="hidden"
@@ -583,7 +709,7 @@ function App() {
             )}
             {gameState === "lost" && (
               <Message
-                key="lost-message" // Required for AnimatePresence
+                key="lost-message"
                 type="lost"
                 variants={messageVariants}
                 initial="hidden"
@@ -605,11 +731,91 @@ function App() {
 
 // --- Global Styles ---
 const GlobalStyle = createGlobalStyle`
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6; color: #1f2937; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-  * { box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=National+Park&display=swap');
+
+  /* CSS Variables for Theming */
+  :root {
+    /* Raw Color Palettes */
+    --dark-green-100: #e0f2f1;
+    --dark-green-200: #b2dfdb;
+    --dark-green-300: #80cbc4;
+    --dark-green-400: #4db6ac; /* Primary Accent */
+    --dark-green-500: #26a69a; /* Feedback Green / Button Hover */
+    --dark-green-600: #00897b; /* Board Dark */
+    --dark-green-700: #00796b; /* Border / Tertiary Bg */
+    --dark-green-800: #00695c; /* Secondary Bg / Message Bg */
+    --dark-green-900: #004d40; /* Primary Bg */
+
+    --orange-100: #fff3e0;
+    --orange-200: #ffe0b2;
+    --orange-300: #ffcc80;
+    --orange-400: #ffb74d;
+    --orange-500: #ffa726; /* Secondary Accent / Feedback Yellow */
+    --orange-600: #fb8c00; /* Button Hover */
+    --orange-700: #f57c00;
+    --orange-800: #ef6c00;
+    --orange-900: #e65100;
+
+    --neutral-100: #eceff1; /* Primary Text / Button Text */
+    --neutral-200: #cfd8dc;
+    --neutral-300: #b0bec5; /* Secondary Text */
+    --neutral-400: #90a4ae;
+    --neutral-500: #78909c;
+    --neutral-600: #607d8b;
+    --neutral-700: #546e7a;
+    --neutral-800: #455a64;
+    --neutral-900: #37474f; /* Feedback Yellow Text */
+
+    /* Semantic Mapping (Dark Theme applied by default) */
+    --background-primary: var(--dark-green-900);
+    --background-secondary: var(--dark-green-800);
+    --background-tertiary: var(--dark-green-700);
+    --text-primary: var(--neutral-100);
+    --text-secondary: var(--neutral-300);
+    --border-color: var(--dark-green-700);
+    --accent-primary: var(--dark-green-400);
+    --accent-secondary: var(--orange-500);
+    --shadow-color-rgba: rgba(0, 20, 15, 0.5); /* Adjusted shadow */
+
+    --feedback-green: var(--dark-green-500);
+    --feedback-yellow: var(--orange-500);
+    --feedback-red: #ef4444; /* Keep specific red */
+    --feedback-yellow-text: var(--neutral-900);
+
+    --board-light: var(--dark-green-300);
+    --board-dark: var(--dark-green-600);
+
+    --button-primary-bg: var(--accent-primary);
+    --button-primary-hover-bg: var(--dark-green-500);
+    --button-secondary-bg: var(--accent-secondary);
+    --button-secondary-hover-bg: var(--orange-600);
+    --button-text: var(--neutral-100); /* White text on buttons */
+    --button-disabled-opacity: 0.6;
+
+    --message-won-bg: var(--dark-green-800);
+    --message-won-text: var(--dark-green-200);
+    --message-won-border: var(--dark-green-500);
+    --message-lost-bg: #5f2120; /* Keep specific dark red */
+    --message-lost-text: #fecaca; /* Keep specific light red */
+    --message-lost-border: var(--feedback-red);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'National Park', sans-serif;
+    background-color: var(--background-primary); /* Use semantic variable */
+    color: var(--text-primary); /* Use semantic variable */
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .react-chessboard svg { max-width: 100%; height: auto; display: block; }
 `;
 
-// --- Styled Components --- (Using motion elements where animated)
+// --- Styled Components ---
 
 const AppWrapper = styled.div`
   min-height: 100vh;
@@ -620,14 +826,14 @@ const AppWrapper = styled.div`
 `;
 
 const Container = styled.div`
-  background-color: white;
+  background-color: var(--background-secondary);
   border-radius: 0.75rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 25px -5px var(--shadow-color-rgba, rgba(0, 0, 0, 0.4)),
+    0 8px 10px -6px var(--shadow-color-rgba, rgba(0, 0, 0, 0.4));
   padding: 2rem;
   max-width: 40rem;
   width: 100%;
-  font-family: inherit;
+  border: 1px solid var(--border-color);
 `;
 
 const Title = styled.h1`
@@ -636,13 +842,13 @@ const Title = styled.h1`
   font-weight: 700;
   text-align: center;
   margin-bottom: 1.5rem;
-  color: #111827;
+  color: var(--text-primary);
 `;
 
 const InfoText = styled.p`
   text-align: center;
   font-size: 0.9rem;
-  color: #4b5563;
+  color: var(--text-secondary);
   margin-bottom: ${(props) => props.marginBottom || "0.5rem"};
   line-height: 1.4;
 `;
@@ -650,6 +856,7 @@ const InfoText = styled.p`
 const TurnText = styled.span`
   font-weight: 600;
   text-transform: capitalize;
+  color: var(--text-primary);
 `;
 
 const HistoryContainer = styled.div`
@@ -657,31 +864,36 @@ const HistoryContainer = styled.div`
   flex-direction: column;
   gap: 0.75rem;
   margin-bottom: 1.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.75rem;
-  background-color: #f9fafb;
+  background-color: var(--background-primary);
+  max-height: 200px;
+  overflow-y: auto;
 `;
 
 const AttemptHistoryItem = styled(motion.div)`
   padding: 0.5rem;
   border-radius: 0.375rem;
-  border: 1px solid #d1d5db;
-  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  background-color: var(--background-secondary);
   ${({ $isLastAttempt, $isGameOver }) =>
     $isLastAttempt &&
     $isGameOver &&
-    `border-width: 2px; border-color: #60a5fa; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);`}
+    `
+      border-width: 2px;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 2px var(--accent-primary-rgba, rgba(52, 211, 153, 0.3));
+    `}
 `;
 
 const AttemptLabel = styled.p`
   font-size: 0.8rem;
   font-weight: 600;
   margin-bottom: 0.375rem;
-  color: #374151;
+  color: var(--text-secondary);
 `;
 
-// Wraps motion.ul for list animation control
 const FeedbackList = styled(motion.ul)`
   display: flex;
   flex-wrap: wrap;
@@ -691,7 +903,6 @@ const FeedbackList = styled(motion.ul)`
   margin: 0;
 `;
 
-// Wraps motion.li for individual item animation
 const FeedbackListItem = styled(motion.li)`
   padding: 0.25rem 0.6rem;
   border-radius: 0.375rem;
@@ -700,44 +911,48 @@ const FeedbackListItem = styled(motion.li)`
   font-size: 0.8rem;
   font-weight: 500;
   background-color: ${(props) => {
-    /* Color logic based on $feedbackType */
     switch (props.$feedbackType) {
       case "green":
-        return "#10b981";
+        return "var(--feedback-green)";
       case "yellow":
-        return "#f59e0b";
+        return "var(--feedback-yellow)";
       case "red":
-        return "#ef4444";
+        return "var(--feedback-red)";
       default:
-        return "#d1d5db";
+        return "var(--border-color)";
     }
   }};
-  color: ${(props) => (props.$feedbackType === "yellow" ? "#1f2937" : "white")};
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: ${(props) =>
+    props.$feedbackType === "yellow"
+      ? "var(--feedback-yellow-text)"
+      : "var(--button-text, white)"};
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  line-height: 1.2;
+  text-align: center;
 `;
 
 const BoardWrapper = styled.div`
   max-width: 30rem;
   margin: 0 auto 1.5rem auto;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6px 20px var(--shadow-color-rgba, rgba(0, 0, 0, 0.3));
   border-radius: 0.375rem;
   overflow: hidden;
+  border: 1px solid var(--border-color);
 `;
 
 const CurrentSequenceDisplay = styled.div`
   text-align: center;
   margin-bottom: 1.5rem;
   padding: 0.75rem;
-  background-color: #f9fafb;
+  background-color: var(--background-primary);
   border-radius: 0.375rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
 `;
 
 const CurrentSequenceLabel = styled.p`
   font-size: 0.9rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-secondary);
   margin: 0 0 0.375rem 0;
 `;
 
@@ -746,14 +961,14 @@ const CurrentSequenceMoves = styled.p`
     monospace;
   font-size: 0.85rem;
   word-break: break-all;
-  color: #4b5563;
+  color: var(--text-primary);
   min-height: 1.5rem;
   line-height: 1.5;
   margin: 0;
-  background-color: #ffffff;
+  background-color: var(--background-secondary);
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
 `;
 
 const ControlsWrapper = styled.div`
@@ -765,36 +980,47 @@ const ControlsWrapper = styled.div`
 
 const StyledButton = styled.button`
   padding: 0.6rem 1.2rem;
-  color: white;
+  color: var(--button-text);
   border-radius: 0.375rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px 0 var(--shadow-color-rgba, rgba(0, 0, 0, 0.2)),
+    0 1px 2px 0 var(--shadow-color-rgba, rgba(0, 0, 0, 0.2));
   transition: background-color 150ms ease-in-out, opacity 150ms ease-in-out,
     box-shadow 150ms ease-in-out;
   border: none;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 600;
-  background-color: ${(props) => (props.primary ? "#3b82f6" : "#f97316")};
-  &:hover {
-    background-color: ${(props) => (props.primary ? "#2563eb" : "#ea580c")};
+  font-family: inherit;
+  background-color: ${(props) =>
+    props.primary ? "var(--button-primary-bg)" : "var(--button-secondary-bg)"};
+
+  &:hover:not(:disabled) {
+    background-color: ${(props) =>
+      props.primary
+        ? "var(--button-primary-hover-bg)"
+        : "var(--button-secondary-hover-bg)"};
   }
   &:focus-visible {
     outline: 2px solid transparent;
     outline-offset: 2px;
     box-shadow: 0 0 0 3px
       ${(props) =>
-        props.primary ? "rgba(59, 130, 246, 0.5)" : "rgba(249, 115, 22, 0.5)"};
+        props.primary
+          ? "var(--accent-primary)"
+          : "var(--accent-secondary)"}99; /* Add alpha */
   }
   &:disabled {
-    opacity: 0.6;
+    opacity: var(--button-disabled-opacity);
     cursor: not-allowed;
     &:hover {
-      background-color: ${(props) => (props.primary ? "#3b82f6" : "#f97316")};
+      background-color: ${(props) =>
+        props.primary
+          ? "var(--button-primary-bg)"
+          : "var(--button-secondary-bg)"};
     }
   }
 `;
 
-// Wraps motion.div for win/loss message animation
 const Message = styled(motion.div)`
   margin-top: 1rem;
   padding: 1rem;
@@ -802,13 +1028,20 @@ const Message = styled(motion.div)`
   border-radius: 0.5rem;
   border-width: 1px;
   border-style: solid;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px 0 var(--shadow-color-rgba, rgba(0, 0, 0, 0.2)),
+    0 1px 2px 0 var(--shadow-color-rgba, rgba(0, 0, 0, 0.2));
   font-size: 1rem;
   font-weight: 500;
   background-color: ${(props) =>
-    props.type === "won" ? "#dcfce7" : "#fee2e2"};
-  color: ${(props) => (props.type === "won" ? "#166534" : "#991b1b")};
-  border-color: ${(props) => (props.type === "won" ? "#86efac" : "#fecaca")};
+    props.type === "won" ? "var(--message-won-bg)" : "var(--message-lost-bg)"};
+  color: ${(props) =>
+    props.type === "won"
+      ? "var(--message-won-text)"
+      : "var(--message-lost-text)"};
+  border-color: ${(props) =>
+    props.type === "won"
+      ? "var(--message-won-border)"
+      : "var(--message-lost-border)"};
 `;
 
 const SolutionText = styled.p`
