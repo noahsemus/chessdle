@@ -57,15 +57,18 @@ const HistoryContainer = styled.div`
   gap: 0.75rem;
   margin-bottom: 1rem;
 `;
+
+// Use transient props ($isLastAttempt, $isGameOver)
 const AttemptHistoryItem = styled.div`
   padding: 0.5rem;
   border-radius: 0.25rem;
   border: 1px solid #e5e7eb;
-  ${({ isLastAttempt, isGameOver }) =>
-    isLastAttempt &&
-    isGameOver &&
+  ${({ $isLastAttempt, $isGameOver }) =>
+    $isLastAttempt &&
+    $isGameOver &&
     ` border-width: 2px; border-color: #3b82f6; `}
 `;
+
 const AttemptLabel = styled.p`
   font-size: 0.75rem;
   font-weight: 600;
@@ -80,13 +83,15 @@ const FeedbackList = styled.ul`
   padding: 0;
   margin: 0;
 `;
+
+// Use transient prop ($feedbackType)
 const FeedbackListItem = styled.li`
   padding: 0.125rem 0.5rem;
   border-radius: 0.25rem;
   font-family: monospace;
   font-size: 0.75rem;
   background-color: ${(props) => {
-    switch (props.feedbackType) {
+    switch (props.$feedbackType) {
       case "green":
         return "#22c55e";
       case "yellow":
@@ -98,10 +103,11 @@ const FeedbackListItem = styled.li`
     }
   }};
   color: ${(props) =>
-    props.feedbackType === "yellow" || !props.feedbackType
+    props.$feedbackType === "yellow" || !props.$feedbackType
       ? "#1f2937"
       : "white"};
 `;
+
 const BoardWrapper = styled.div`
   max-width: 24rem;
   margin: 0 auto 1rem auto;
@@ -184,14 +190,25 @@ const SolutionText = styled.p`
 `;
 
 // --- Helper Functions ---
-
-// Parses SAN notation using chess.js, requires current FEN
 const parseSanMove = (fenBeforeMove, san) => {
+  console.log(
+    `  [parseSanMove] Attempting to parse SAN "${san}" from FEN "${fenBeforeMove}"`
+  );
   const tempGame = new Chess(fenBeforeMove);
+  let moveDetails = null;
   try {
-    // Use sloppy=true to allow parsing even if it's not strictly that player's turn
-    const moveDetails = tempGame.move(san, { sloppy: true });
-    if (!moveDetails) return null; // Return null if move is illegal for any reason
+    // Use stricter parsing (no sloppy)
+    moveDetails = tempGame.move(san);
+    console.log(
+      `  [parseSanMove] chess.js move() result for "${san}":`,
+      moveDetails
+    );
+    if (!moveDetails) {
+      console.log(
+        `  [parseSanMove] Move "${san}" is illegal or wrong turn -> returning null.`
+      );
+      return null;
+    }
     return {
       piece: moveDetails.piece,
       from: moveDetails.from,
@@ -201,16 +218,13 @@ const parseSanMove = (fenBeforeMove, san) => {
       promotion: moveDetails.promotion,
     };
   } catch (e) {
-    // Catch potential exceptions during parsing (though .move usually returns null)
     console.error(
-      `Exception parsing SAN "${san}" from FEN "${fenBeforeMove}":`,
+      `  [parseSanMove] Exception parsing SAN "${san}" from FEN "${fenBeforeMove}":`,
       e
     );
     return null;
   }
 };
-
-// Parses UCI notation string like "e2e4" or "a7a8q"
 const parseUci = (uci) => {
   if (!uci || uci.length < 4 || uci.length > 5) {
     console.warn("Invalid UCI string format:", uci);
@@ -218,7 +232,8 @@ const parseUci = (uci) => {
   }
   const from = uci.substring(0, 2);
   const to = uci.substring(2, 4);
-  const promotion = uci.length === 5 ? uci.substring(4, 5) : undefined;
+  const promotion =
+    uci.length === 5 ? uci.substring(4, 5).toLowerCase() : undefined;
   const validSquare = /^[a-h][1-8]$/;
   if (!validSquare.test(from) || !validSquare.test(to)) {
     console.warn("Invalid squares in UCI string:", uci);
@@ -231,7 +246,7 @@ const parseUci = (uci) => {
   return { from, to, promotion };
 };
 
-// --- Feedback Display Component (using styled-components) ---
+// --- Feedback Display Component ---
 function FeedbackDisplay({ userSequence, feedback }) {
   if (
     !feedback ||
@@ -248,10 +263,8 @@ function FeedbackDisplay({ userSequence, feedback }) {
   return (
     <FeedbackList>
       {userSequence.map((move, index) => (
-        <FeedbackListItem
-          key={index}
-          feedbackType={feedback[index]} // Pass feedback type as prop
-        >
+        // Pass transient prop $feedbackType
+        <FeedbackListItem key={index} $feedbackType={feedback[index]}>
           {userSequence.length > 1 ? `${index + 1}. ` : ""}
           {move || "?"}
         </FeedbackListItem>
@@ -262,7 +275,7 @@ function FeedbackDisplay({ userSequence, feedback }) {
 
 // --- Main App Component ---
 function App() {
-  // --- State Variables ---
+  // State variables...
   const [puzzle, setPuzzle] = useState(null);
   const [game, setGame] = useState(null);
   const [currentFen, setCurrentFen] = useState("start");
@@ -272,7 +285,7 @@ function App() {
   const [gameState, setGameState] = useState("loading");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // --- Fetch Puzzle Data ---
+  // Fetch Puzzle Data... (useEffect remains the same)
   useEffect(() => {
     const fetchDailyPuzzle = async () => {
       setGameState("loading");
@@ -404,7 +417,7 @@ function App() {
     fetchDailyPuzzle();
   }, []);
 
-  // --- Handle User Moves on Chessboard ---
+  // Handle User Moves... (onDrop remains the same)
   const onDrop = useCallback(
     (sourceSquare, targetSquare, piece) => {
       if (gameState !== "playing" || !game) {
@@ -435,7 +448,7 @@ function App() {
     [game, currentFen, userMoveSequence, gameState]
   );
 
-  // --- Reset User Input for CURRENT attempt ---
+  // Reset User Input... (handleResetInput remains the same)
   const handleResetInput = () => {
     if (!puzzle || !game || gameState !== "playing") {
       return;
@@ -450,7 +463,7 @@ function App() {
     }
   };
 
-  // --- Submit and Validate Sequence ---
+  // --- Submit and Validate Sequence --- (logic remains the same)
   const handleSubmit = () => {
     if (
       !puzzle ||
@@ -483,123 +496,87 @@ function App() {
       userMoveSequence.length,
       solutionMovesUci.length
     );
-
-    // --- DETAILED LOGGING START ---
     console.log(
       `\n--- Starting Validation for Attempt ${currentAttemptNumber} ---`
     );
-    // --- DETAILED LOGGING END ---
-
     for (let i = 0; i < comparisonLength; i++) {
       const currentValidationFen = validationGame.fen();
       const userSan = userMoveSequence[i];
       const solutionUci = solutionMovesUci[i];
       let result = "red";
       let advanceStateSuccess = true;
-
-      // --- DETAILED LOGGING START ---
       console.log(`\n[Index ${i}]`);
       console.log(`  FEN: ${currentValidationFen}`);
       console.log(`  User SAN: ${userSan || "N/A"}`);
       console.log(`  Solution UCI: ${solutionUci || "N/A"}`);
-      // --- DETAILED LOGGING END ---
-
-      // Try parsing user move (SAN). Will be null if illegal.
       const userMoveObject = userSan
         ? parseSanMove(currentValidationFen, userSan)
         : null;
-      // Try parsing solution move (UCI). Will be null if format is bad.
       const solutionMoveObject = solutionUci ? parseUci(solutionUci) : null;
-
-      // --- DETAILED LOGGING START ---
       console.log(`  Parsed User Move (SAN -> obj):`, userMoveObject);
       console.log(`  Parsed Solution Move (UCI -> obj):`, solutionMoveObject);
-      // --- DETAILED LOGGING END ---
-
-      // Calculate Feedback only if both moves could be parsed
       if (userMoveObject && solutionMoveObject) {
-        // Check Green: Exact match of squares and promotion
         const isGreen =
           userMoveObject.from === solutionMoveObject.from &&
           userMoveObject.to === solutionMoveObject.to &&
           userMoveObject.promotion === solutionMoveObject.promotion;
-
-        // --- DETAILED LOGGING START ---
         console.log(`  isGreen Check: ${isGreen}`);
-        // --- DETAILED LOGGING END ---
-
         if (isGreen) {
           result = "green";
         } else {
-          // Check Yellow: EITHER correct start square OR correct destination square, but NOT both
-          const pieceMatch = userMoveObject.from === solutionMoveObject.from; // Correct piece instance?
-          const destMatch = userMoveObject.to === solutionMoveObject.to; // Correct destination square?
-
-          // --- DETAILED LOGGING START ---
+          const pieceMatch = userMoveObject.from === solutionMoveObject.from;
+          const destMatch = userMoveObject.to === solutionMoveObject.to;
           console.log(
             `  pieceMatch (from squares): ${pieceMatch} (${userMoveObject.from} vs ${solutionMoveObject.from})`
           );
           console.log(
             `  destMatch (to squares): ${destMatch} (${userMoveObject.to} vs ${solutionMoveObject.to})`
           );
-          // --- DETAILED LOGGING END ---
-
           if ((pieceMatch || destMatch) && !(pieceMatch && destMatch)) {
-            // XOR logic
             result = "yellow";
           }
-          // If not Green or Yellow, result remains 'red'
         }
       } else {
-        // Default to Red if parsing failed or sequences mismatch length
         result = "red";
-        // --- DETAILED LOGGING START ---
         console.log(
           `  Parsing failed or sequence length mismatch -> Defaulting to Red.`
         );
         if (userSan && !userMoveObject)
           console.log(
-            `  Reason: Could not parse user SAN "${userSan}". Check legality from FEN.`
+            `  Reason: Could not parse user SAN "${userSan}". Check legality/turn.`
           );
-        // Add other reasons if needed...
-        // --- DETAILED LOGGING END ---
       }
-
-      // --- DETAILED LOGGING START ---
       console.log(`  => Result for index ${i}: ${result.toUpperCase()}`);
-      // --- DETAILED LOGGING END ---
-
       feedbackResults.push(result);
       if (result !== "green") {
         allCorrect = false;
       }
-
-      // Advance validation board state using the CORRECT solution move
       if (solutionUci) {
         let moveApplied = null;
         try {
           console.log(
             `  Advancing validation state with solution UCI: ${solutionUci}`
           );
-          moveApplied = validationGame.move(solutionUci); // Use UCI string
+          moveApplied = validationGame.move(solutionUci);
           if (!moveApplied) {
             console.warn(`  Solution move ${i} returned null (illegal).`);
             advanceStateSuccess = false;
-            // Force feedback to red if state cannot advance, as comparison was based on wrong state
             if (result !== "red") {
               feedbackResults[feedbackResults.length - 1] = "red";
               allCorrect = false;
             }
+            break;
           } else {
             console.log(`  State advanced. New FEN: ${validationGame.fen()}`);
           }
         } catch (e) {
-          console.warn(`  Solution move ${i} exception: ${e.message}`);
+          console.warn(`  Solution move ${i} exception: ${e.message}.`);
           advanceStateSuccess = false;
           if (result !== "red") {
             feedbackResults[feedbackResults.length - 1] = "red";
             allCorrect = false;
           }
+          break;
         }
       } else if (i < solutionMovesUci.length) {
         console.error(`Solution UCI missing at index ${i}`);
@@ -609,20 +586,17 @@ function App() {
       } else {
         advanceStateSuccess = false;
       }
-      if (!advanceStateSuccess && i < comparisonLength - 1) {
-        console.warn("Further validation inaccurate");
-      }
     } // End of validation loop
-
-    // --- DETAILED LOGGING START ---
+    while (feedbackResults.length < userMoveSequence.length) {
+      console.warn(`User sequence longer than processed validation steps.`);
+      feedbackResults.push("red");
+      allCorrect = false;
+    }
     console.log(
       `--- Validation Complete for Attempt ${currentAttemptNumber} ---`
     );
     console.log("Final Feedback Results:", feedbackResults);
     console.log("Overall Correct:", allCorrect);
-    // --- DETAILED LOGGING END ---
-
-    // Update State based on attempt result
     const newAttempt = {
       sequence: userMoveSequence,
       feedback: feedbackResults,
@@ -691,21 +665,20 @@ function App() {
             </InfoText>
           )}
           <HistoryContainer>
-            {" "}
             {attemptsHistory.map((attempt, index) => (
+              // Pass transient props ($isLastAttempt, $isGameOver)
               <AttemptHistoryItem
                 key={index}
-                isLastAttempt={index === attemptsHistory.length - 1}
-                isGameOver={isGameOver}
+                $isLastAttempt={index === attemptsHistory.length - 1} // Use $ prefix
+                $isGameOver={isGameOver} // Use $ prefix
               >
-                {" "}
-                <AttemptLabel>Attempt {index + 1}:</AttemptLabel>{" "}
+                <AttemptLabel>Attempt {index + 1}:</AttemptLabel>
                 <FeedbackDisplay
                   userSequence={attempt.sequence}
                   feedback={attempt.feedback}
-                />{" "}
+                />
               </AttemptHistoryItem>
-            ))}{" "}
+            ))}
           </HistoryContainer>
           {!isGameOver && (
             <>
