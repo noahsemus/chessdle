@@ -587,9 +587,12 @@ function App() {
 
   if (!puzzle) {
     return (
-      <AppWrapper>
-        <Container>Waiting for puzzle data...</Container>
-      </AppWrapper>
+      <>
+        <GlobalStyle />
+        <AppWrapper>
+          <Container>Waiting for puzzle data...</Container>
+        </AppWrapper>
+      </>
     );
   }
 
@@ -599,98 +602,97 @@ function App() {
       <GlobalStyle />
       <AppWrapper>
         <Container>
-          <Title>Chessdle</Title>
-          <InfoText>Rating: {puzzle.rating}</InfoText>
-          {!isGameOver && (
-            <InfoText marginBottom="1rem">
-              Attempt {currentAttemptNumber} of {MAX_ATTEMPTS}. Find the{" "}
-              {puzzle.solution.length}-move solution. Turn:{" "}
-              <TurnText>{puzzle.playerColor}</TurnText>
-            </InfoText>
-          )}
+          <TopContainer>
+            <Title>Chessdle</Title>
+            <InfoText>Rating: {puzzle.rating}</InfoText>
+            {!isGameOver && (
+              <InfoText>
+                Attempt {currentAttemptNumber} of {MAX_ATTEMPTS}. Find the{" "}
+                {puzzle.solution.length}-move solution. Turn:{" "}
+                <TurnText>{puzzle.playerColor}</TurnText>
+              </InfoText>
+            )}
+          </TopContainer>
 
-          {/* Attempts History */}
-          <HistoryContainer>
-            <AnimatePresence initial={false}>
-              {attemptsHistory.map((attempt, index) => (
-                <AttemptHistoryItem
-                  key={index}
-                  $isLastAttempt={index === attemptsHistory.length - 1}
-                  $isGameOver={isGameOver}
-                  layout
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <AttemptLabel>Attempt {index + 1}:</AttemptLabel>
-                  <AnimatedFeedbackDisplay
-                    userSequence={attempt.sequence}
-                    feedback={attempt.feedback}
-                  />
-                </AttemptHistoryItem>
-              ))}
-            </AnimatePresence>
-          </HistoryContainer>
+          <>
+            <BoardWrapper>
+              <Chessboard
+                key={`${puzzle.id}-${currentAttemptNumber}`}
+                id="ChessdleBoard"
+                position={currentFen}
+                onPieceDrop={onDrop}
+                boardOrientation={puzzle.playerColor}
+                arePiecesDraggable={gameState === "playing"}
+                customBoardStyle={{
+                  borderRadius: "4px",
+                  boxShadow:
+                    "0 4px 15px var(--shadow-color-rgba, rgba(0, 0, 0, 0.2))",
+                }}
+                customDarkSquareStyle={{
+                  backgroundColor: "var(--board-dark, #6b8f4b)",
+                }}
+                customLightSquareStyle={{
+                  backgroundColor: "var(--board-light, #c2d1b0)",
+                }}
+              />
+            </BoardWrapper>
 
-          {/* Board & Controls (only shown while playing) */}
-          {gameState === "playing" && (
-            <>
-              <BoardWrapper>
-                <Chessboard
-                  key={`${puzzle.id}-${currentAttemptNumber}`}
-                  id="ChessdleBoard"
-                  position={currentFen}
-                  onPieceDrop={onDrop}
-                  boardOrientation={puzzle.playerColor}
-                  arePiecesDraggable={gameState === "playing"}
-                  customBoardStyle={{
-                    borderRadius: "4px",
-                    boxShadow:
-                      "0 4px 15px var(--shadow-color-rgba, rgba(0, 0, 0, 0.2))",
-                  }}
-                  customDarkSquareStyle={{
-                    backgroundColor: "var(--board-dark, #6b8f4b)",
-                  }}
-                  customLightSquareStyle={{
-                    backgroundColor: "var(--board-light, #c2d1b0)",
-                  }}
-                />
-              </BoardWrapper>
+            {/* Current Input Sequence */}
+            <CurrentSequenceDisplay>
+              <CurrentSequenceLabel>
+                Current sequence ({userMoveSequence.length}/
+                {puzzle.solution.length} moves):
+              </CurrentSequenceLabel>
+              <CurrentSequenceMoves>
+                {userMoveSequence.join(" ") || "(Drag pieces to make moves)"}
+              </CurrentSequenceMoves>
+            </CurrentSequenceDisplay>
 
-              {/* Current Input Sequence */}
-              <CurrentSequenceDisplay>
-                <CurrentSequenceLabel>
-                  Current sequence ({userMoveSequence.length}/
-                  {puzzle.solution.length} moves):
-                </CurrentSequenceLabel>
-                <CurrentSequenceMoves>
-                  {userMoveSequence.join(" ") || "(Drag pieces to make moves)"}
-                </CurrentSequenceMoves>
-              </CurrentSequenceDisplay>
+            {/* Attempts History */}
+            <HistoryContainer>
+              <AnimatePresence initial={false}>
+                {attemptsHistory.map((attempt, index) => (
+                  <AttemptHistoryItem
+                    key={index}
+                    $isLastAttempt={index === attemptsHistory.length - 1}
+                    $isGameOver={isGameOver}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <AttemptLabel>Attempt {index + 1}:</AttemptLabel>
+                    <AnimatedFeedbackDisplay
+                      userSequence={attempt.sequence}
+                      feedback={attempt.feedback}
+                    />
+                  </AttemptHistoryItem>
+                ))}
+              </AnimatePresence>
+            </HistoryContainer>
 
-              {/* Action Buttons */}
-              <ControlsWrapper>
-                <StyledButton
-                  onClick={handleResetInput}
-                  disabled={
-                    userMoveSequence.length === 0 || gameState !== "playing"
-                  }
-                >
-                  Reset Input
-                </StyledButton>
-                <StyledButton
-                  primary
-                  onClick={handleSubmit}
-                  disabled={
-                    userMoveSequence.length === 0 || gameState !== "playing"
-                  }
-                >
-                  Submit Attempt {currentAttemptNumber}
-                </StyledButton>
-              </ControlsWrapper>
-            </>
-          )}
+            {/* Action Buttons */}
+            <ControlsWrapper>
+              <StyledButton
+                onClick={handleResetInput}
+                disabled={
+                  userMoveSequence.length === 0 || gameState !== "playing"
+                }
+              >
+                Reset Input
+              </StyledButton>
+              <StyledButton
+                primary
+                onClick={handleSubmit}
+                disabled={
+                  userMoveSequence.length === 0 || gameState !== "playing"
+                }
+              >
+                Submit Attempt {currentAttemptNumber}
+              </StyledButton>
+            </ControlsWrapper>
+          </>
 
           {/* Win/Loss Messages */}
           <AnimatePresence>
@@ -830,12 +832,19 @@ const Container = styled.div`
   width: 100%;
 `;
 
+const TopContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.5rem;
+`;
+
 const Title = styled.h1`
-  font-size: 2rem;
-  line-height: 2.5rem;
+  font-size: 3rem;
+  line-height: 100%;
   font-weight: 700;
   text-align: center;
-  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
   color: var(--text-primary);
 `;
 
@@ -843,7 +852,6 @@ const InfoText = styled.p`
   text-align: center;
   font-size: 0.9rem;
   color: var(--text-secondary);
-  margin-bottom: ${(props) => props.marginBottom || "0.5rem"};
   line-height: 1.4;
 `;
 
@@ -931,16 +939,10 @@ const BoardWrapper = styled.div`
   box-shadow: 0 6px 20px var(--shadow-color-rgba, rgba(0, 0, 0, 0.3));
   border-radius: 0.375rem;
   overflow: hidden;
-  border: 1px solid var(--border-color);
 `;
 
 const CurrentSequenceDisplay = styled.div`
   text-align: center;
-  margin-bottom: 1.5rem;
-  padding: 0.75rem;
-  background-color: var(--background-primary);
-  border-radius: 0.375rem;
-  border: 1px solid var(--border-color);
 `;
 
 const CurrentSequenceLabel = styled.p`
