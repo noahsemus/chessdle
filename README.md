@@ -2,7 +2,9 @@
 
 A Wordle-inspired daily chess puzzle game using the Lichess Daily Puzzle API.
 
-Made with ❤️
+Made with ❤️ by me!
+
+Inspired by a story from GM Daniel Naroditsky (Danya), where his teacher had him only say the **final move** of the puzzle, forcing him to calculate the full line.
 
 ## How it Works
 
