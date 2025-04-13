@@ -390,6 +390,11 @@ function App() {
         return true;
       }
 
+      if (userMoveSequence.length >= puzzle.solution.length) {
+        console.log("Maximum sequence length reached. Move prevented.");
+        return false;
+      }
+
       if (typeof Chess === "undefined") {
         console.error("Chess.js not loaded in onDrop callback.");
         return false;
