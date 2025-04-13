@@ -754,8 +754,8 @@ function App() {
         <Container>
           <TopContainer layout>
             <TitleContainer>
-              <Title>Chessdle</Title>
-              <InfoText>Lichess' puzzle of the day, but puzzle-fied!</InfoText>
+              <Title>Chessdle!</Title>
+              <InfoText>Lichess' puzzle of the day, but puzzle-fied</InfoText>
             </TitleContainer>
             <InfoText>Rating: {puzzle.rating}</InfoText>
             {!isGameOver && (
