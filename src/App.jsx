@@ -909,7 +909,7 @@ const GlobalStyle = createGlobalStyle`
     --dark-green-500: #26a69a; /* Feedback Green / Button Hover */
     --dark-green-600: #00897b; /* Board Dark */
     --dark-green-700: #00796b; /* Border / Tertiary Bg */
-    --dark-green-800: #00695c; /* Secondary Bg / Message Bg */
+    --dark-green-800: #11534c; /* Secondary Bg / Message Bg */
     --dark-green-900: #00251f; /* Primary Bg */
 
     --orange-100: #fff3e0;
@@ -937,7 +937,7 @@ const GlobalStyle = createGlobalStyle`
     --background-secondary: var(--dark-green-800);
     --background-tertiary: var(--dark-green-700);
     --text-primary: var(--neutral-100);
-    --text-secondary: var(--neutral-300);
+    --text-secondary: rgba(255, 255, 255, 0.5);
     --border-color: var(--dark-green-700);
     --accent-primary: var(--dark-green-400);
     --accent-secondary: var(--orange-500);
@@ -945,7 +945,7 @@ const GlobalStyle = createGlobalStyle`
 
     --feedback-green: var(--dark-green-500);
     --feedback-yellow: var(--orange-500);
-    --feedback-red: #ef4444;
+    --feedback-red: rgba(255, 0, 0, 0.555);
     --feedback-red-hover: #dc2626;
     --feedback-yellow-text: var(--neutral-900);
 
@@ -971,6 +971,7 @@ const GlobalStyle = createGlobalStyle`
 
   body {
     font-family: 'National Park', serif;
+    letter-spacing: .15ch;
     background-color: var(--background-primary);
     color: var(--text-primary);
     line-height: 1.5;
@@ -1026,6 +1027,7 @@ const TitleContainer = styled.div`
 
 const Title = styled.h1`
   font-size: 4rem;
+  letter-spacing: -0.05ch;
   line-height: 100%;
   font-weight: 700;
   text-align: center;
@@ -1078,8 +1080,6 @@ const FeedbackList = styled(motion.ul)`
 const FeedbackListItem = styled(motion.li)`
   padding: 0.25rem 0.6rem;
   border-radius: 0.375rem;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier,
-    monospace;
   font-size: 0.8rem;
   font-weight: 500;
   background-color: ${(props) => {
@@ -1131,8 +1131,6 @@ const CurrentSequenceLabel = styled.p`
 `;
 
 const CurrentSequenceMoves = styled(motion.p)`
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier,
-    monospace;
   font-size: 0.85rem;
   word-break: break-all;
   color: var(--text-primary);
@@ -1232,8 +1230,6 @@ const SolutionText = styled.p`
   font-size: 0.8rem;
   margin-top: 0.5rem;
   font-weight: 400;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier,
-    monospace;
   color: inherit;
   word-break: keep-all;
 `;
