@@ -1116,35 +1116,22 @@ const GlobalStyle = createGlobalStyle`
   /* CSS Variables for Theming */
   :root {
     /* Raw Color Palettes */
-    --dark-green-100: #e0f2f1;
-    --dark-green-200: #b2dfdb;
-    --dark-green-300: #80cbc4;
-    --dark-green-400: #4db6ac; /* Primary Accent */
-    --dark-green-500: #26a69a; /* Feedback Green / Button Hover */
-    --dark-green-600: #00897b; /* Board Dark */
-    --dark-green-700: #00796b; /* Border / Tertiary Bg */
-    --dark-green-800: #11534c; /* Secondary Bg / Message Bg */
-    --dark-green-900: #00251f; /* Primary Bg */
+    --dark-green-200: #b2dfdb; /* Won Message Text */
+    --dark-green-300: #80cbc4; /* Board Light Squares */
+    --dark-green-400: #4db6ac; /* Primary Accent (Buttons, Focus Rings) */
+    --dark-green-500: #26a69a; /* Feedback Green, Button Hover, Won Border */
+    --dark-green-600: #00897b; /* Board Dark Squares */
+    --dark-green-700: #00796b; /* Default Feedback Bg, Close Button Hover Bg */
+    --dark-green-800: #11534c; /* Secondary Backgrounds (History, Input, Modal) */
+    --dark-green-900: #00251f; /* Primary Background */
 
-    --orange-100: #fff3e0;
-    --orange-200: #ffe0b2;
-    --orange-300: #ffcc80;
-    --orange-400: #ffb74d;
-    --orange-500: #ffa726; /* Secondary Accent / Feedback Yellow */
-    --orange-600: #fb8c00; /* Button Hover */
-    --orange-700: #f57c00;
-    --orange-800: #ef6c00;
-    --orange-900: #e65100;
+    --orange-500: #ffa726; /* Feedback Yellow */
+    --orange-700: #f57c00; /* Secondary Button Background */
+    --orange-800: #ef6c00; /* Secondary Button Hover Background */
 
-    --neutral-100: #eceff1; /* Primary Text / Button Text */
-    --neutral-200: #cfd8dc;
-    --neutral-300: #b0bec5; /* Secondary Text */
-    --neutral-400: #90a4ae;
-    --neutral-500: #78909c;
-    --neutral-600: #607d8b;
-    --neutral-700: #546e7a;
-    --neutral-800: #455a64;
-    --neutral-900: #37474f;
+    --neutral-100: #eceff1; /* Primary Text */
+    --neutral-200: #cfd8dc; /* Modal Body Text, Emphasis Text */
+    --neutral-900: #37474f; /* Button Text, Green/Yellow Feedback Text */
 
     /* State/Opacity Variables */
     --state-white-05: rgba(255, 255, 255, 0.05);
@@ -1158,21 +1145,20 @@ const GlobalStyle = createGlobalStyle`
     --state-black-60: rgba(0, 0, 0, 0.6);
 
     --state-shadow-dark: rgba(0, 20, 15, 1);
-    
+
     --state-red-55: rgba(255, 0, 0, 0.555);
     --state-red-60: rgba(255, 0, 0, 0.6);
 
     --state-dark-green-30: rgba(77, 182, 172, 0.3); /* Based on --dark-green-400 */
-
     --state-orange-60: rgba(255, 167, 38, 0.6); /* Based on --orange-500 */
 
     /* Feedback Colors (keeping hex for hover) */
-    --feedback-red-hover: #dc2626;
+    --feedback-red-hover: #dc2626; /* Last Attempt Button Hover */
 
     /* Button Colors */
     --button-disabled-opacity: 0.6;
-    --message-lost-bg: #5f2120; /* Keeping specific hex */
-    --message-lost-text: #fecaca; /* Keeping specific hex */
+    --message-lost-bg: #5f2120; /* Lost Message Background */
+    --message-lost-text: #fecaca; /* Lost Message Text */
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
