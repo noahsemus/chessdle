@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import styled, { createGlobalStyle } from "styled-components";
-import { motion, AnimatePresence } from "framer-motion"; // Corrected import path
+import { motion, AnimatePresence } from "motion/react";
 
 // --- Constants ---
 const LICHESS_DAILY_PUZZLE_URL = "https://lichess.org/api/puzzle/daily";
@@ -625,6 +625,7 @@ function App() {
 
   // --- Render Logic ---
   const isGameOver = gameState === "won" || gameState === "lost";
+  const isLastAttempt = currentAttemptNumber === MAX_ATTEMPTS;
 
   if (gameState === "loading") {
     return (
@@ -769,12 +770,15 @@ function App() {
                 </StyledButton>
                 <StyledButton
                   primary
+                  $isLastAttempt={isLastAttempt && gameState === "playing"}
                   onClick={handleSubmit}
                   disabled={
                     userMoveSequence.length === 0 || gameState !== "playing"
                   }
                 >
-                  Submit Attempt {currentAttemptNumber}
+                  {isLastAttempt && gameState === "playing"
+                    ? "Submit Last Attempt"
+                    : `Submit Attempt ${currentAttemptNumber}`}
                 </StyledButton>
               </ControlsWrapper>
             </BottomContainer>
@@ -868,6 +872,7 @@ const GlobalStyle = createGlobalStyle`
     --feedback-green: var(--dark-green-500);
     --feedback-yellow: var(--orange-500);
     --feedback-red: #ef4444;
+    --feedback-red-hover: #dc2626;
     --feedback-yellow-text: var(--neutral-900);
 
     --board-light: var(--dark-green-300);
@@ -1085,12 +1090,19 @@ const StyledButton = styled.button`
   font-size: 0.9rem;
   font-weight: 600;
   font-family: inherit;
+
   background-color: ${(props) =>
-    props.primary ? "var(--button-primary-bg)" : "var(--button-secondary-bg)"};
+    props.$isLastAttempt
+      ? "var(--feedback-red)"
+      : props.primary
+      ? "var(--button-primary-bg)"
+      : "var(--button-secondary-bg)"};
 
   &:hover:not(:disabled) {
     background-color: ${(props) =>
-      props.primary
+      props.$isLastAttempt
+        ? "var(--feedback-red-hover)"
+        : props.primary
         ? "var(--button-primary-hover-bg)"
         : "var(--button-secondary-hover-bg)"};
   }
@@ -1099,16 +1111,20 @@ const StyledButton = styled.button`
     outline-offset: 2px;
     box-shadow: 0 0 0 3px
       ${(props) =>
-        props.primary
-          ? "var(--accent-primary)"
-          : "var(--accent-secondary)"}99; /* Add alpha */
+        props.$isLastAttempt
+          ? "var(--feedback-red)99"
+          : props.primary
+          ? "var(--accent-primary)99"
+          : "var(--accent-secondary)99"};
   }
   &:disabled {
     opacity: var(--button-disabled-opacity);
     cursor: not-allowed;
     &:hover {
       background-color: ${(props) =>
-        props.primary
+        props.$isLastAttempt
+          ? "var(--feedback-red)"
+          : props.primary
           ? "var(--button-primary-bg)"
           : "var(--button-secondary-bg)"};
     }
