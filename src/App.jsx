@@ -9,6 +9,7 @@ const LICHESS_DAILY_PUZZLE_URL = "https://lichess.org/api/puzzle/daily";
 const MAX_ATTEMPTS = 5;
 const CORS_PROXY_URL = "https://api.allorigins.win/raw?url="; // CORS Proxy
 const BOARD_RESET_DELAY = 500; // Delay in ms before resetting board visually after failed attempt
+const LOCAL_STORAGE_KEY_PREFIX = "chessdle_progress_"; // Prefix for localStorage keys
 
 // --- Helper Functions ---
 
@@ -320,16 +321,61 @@ function App() {
           `lichess_daily_${new Date().toISOString().split("T")[0]}`;
         const puzzleRating = data.puzzle?.rating || "N/A";
 
-        setPuzzle({
+        // Store the fetched and processed puzzle data
+        const newPuzzleData = {
           id: puzzleId,
           rating: puzzleRating,
           initialFen: finalInitialFen,
           solution: solution, // Store as UCI
           playerColor: playerColor,
-        });
+        };
+        setPuzzle(newPuzzleData);
         setGame(chessInstance);
-        setCurrentFen(finalInitialFen);
-        setGameState("playing");
+        setCurrentFen(finalInitialFen); // Set initial board display
+
+        // --- Load Saved Progress from LocalStorage --- Added Block
+        let loadedStateSuccessfully = false;
+        const storageKey = `${LOCAL_STORAGE_KEY_PREFIX}${puzzleId}`;
+        try {
+          const savedDataString = localStorage.getItem(storageKey);
+          if (savedDataString) {
+            console.log("Found saved progress for puzzle:", puzzleId);
+            const savedData = JSON.parse(savedDataString);
+            // Validate loaded data structure minimally
+            if (
+              savedData &&
+              Array.isArray(savedData.attemptsHistory) &&
+              typeof savedData.currentAttemptNumber === "number" &&
+              typeof savedData.gameState === "string"
+            ) {
+              // Restore state from localStorage
+              setAttemptsHistory(savedData.attemptsHistory);
+              setCurrentAttemptNumber(savedData.currentAttemptNumber);
+              setGameState(savedData.gameState); // Restore previous game state
+              // Ensure board reflects initial state if game is still playing, or final state doesn't matter if won/lost
+              setCurrentFen(finalInitialFen);
+              loadedStateSuccessfully = true; // Mark loading as successful
+              console.log("Restored state:", savedData);
+            } else {
+              console.warn(
+                "Invalid data found in localStorage for this puzzle, starting fresh."
+              );
+              localStorage.removeItem(storageKey); // Clear invalid data
+            }
+          } else {
+            console.log("No saved progress found for puzzle:", puzzleId);
+          }
+        } catch (storageError) {
+          console.error("Error reading from localStorage:", storageError);
+          // Proceed with default state if loading fails
+        }
+
+        // Set to 'playing' only if no valid state was loaded from localStorage
+        if (!loadedStateSuccessfully) {
+          setGameState("playing");
+        }
+        // --- End Load Saved Progress ---
+
         console.log("Puzzle loaded successfully:", {
           id: puzzleId,
           rating: puzzleRating,
@@ -350,6 +396,34 @@ function App() {
     fetchDailyPuzzle();
   }, []); // Run only on mount
 
+  // --- Effect to Save Progress to LocalStorage
+  useEffect(() => {
+    // Persist state to localStorage whenever relevant state changes, but only if a puzzle is loaded
+    if (
+      puzzle &&
+      puzzle.id &&
+      gameState !== "loading" &&
+      gameState !== "error"
+    ) {
+      const storageKey = `${LOCAL_STORAGE_KEY_PREFIX}${puzzle.id}`;
+      const dataToSave = {
+        attemptsHistory,
+        currentAttemptNumber,
+        gameState,
+      };
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+      } catch (storageError) {
+        console.error(
+          "Error writing game state to localStorage:",
+          storageError
+        );
+      }
+    }
+    // Dependencies: Save when these state variables change after initial load
+  }, [attemptsHistory, currentAttemptNumber, gameState, puzzle]);
+  // --- End Effect to Save Progress ---
+
   // --- Callbacks ---
 
   /**
@@ -362,14 +436,12 @@ function App() {
 
       // If starting a new sequence after a submit, ensure the board is visually reset first
       // This handles cases where the timeout might not have finished before user interaction
-      if (userMoveSequence.length === 0 && currentFen !== puzzle.initialFen) {
-        console.log("Detected start of new sequence, ensuring board is reset.");
-        setCurrentFen(puzzle.initialFen);
-        // Use the initial FEN for this move validation
-        const gameCopy = new Chess(puzzle.initialFen);
+      if (userMoveSequence.length === 0) {
+        // Use the initial FEN for validation when starting a new sequence
+        const gameForFirstMove = new Chess(puzzle.initialFen);
         let moveResult = null;
         try {
-          moveResult = gameCopy.move({
+          moveResult = gameForFirstMove.move({
             from: sourceSquare,
             to: targetSquare,
             promotion: "q",
@@ -385,8 +457,8 @@ function App() {
           return false;
         }
         console.log(`Valid first move made: ${moveResult.san}`);
-        setCurrentFen(gameCopy.fen());
-        setUserMoveSequence([moveResult.san]);
+        setCurrentFen(gameForFirstMove.fen()); // Update board state
+        setUserMoveSequence([moveResult.san]); // Start the sequence
         return true;
       }
 
@@ -574,45 +646,47 @@ function App() {
       sequence: userMoveSequence,
       feedback: feedbackResults,
     };
+    // Add attempt to history - triggers localStorage save via useEffect
     setAttemptsHistory((prev) => [...prev, newAttempt]);
 
     if (allCorrect && userMoveSequence.length === solutionMovesUci.length) {
-      setGameState("won");
+      setGameState("won"); // Triggers localStorage save
       console.log("Game Won!");
+      setUserMoveSequence([]); // Clear input sequence on win
     } else if (currentAttemptNumber >= MAX_ATTEMPTS) {
-      setGameState("lost");
+      setGameState("lost"); // Triggers localStorage save
       console.log("Game Lost - Max attempts reached.");
+      setUserMoveSequence([]); // Clear input sequence on loss
     } else {
       // Continue playing - Failed attempt
-      setGameState("playing"); // Ensure state is playing
-      setCurrentAttemptNumber((prev) => prev + 1);
+      setCurrentAttemptNumber((prev) => prev + 1); // Triggers localStorage save
       setUserMoveSequence([]); // Clear input sequence for next attempt
+      setGameState("playing"); // Ensure state is playing (also triggers save)
 
       // Delay visual board reset
       console.log(
         `Attempt ${currentAttemptNumber} failed. Delaying board reset.`
       );
+      // Use functional updates within setTimeout to avoid stale state issues
       setTimeout(() => {
-        // Check if the game is still in 'playing' state and puzzle exists
-        // This prevents resetting if the user quickly starts a new game or encounters an error
-        // Also check if the current attempt number matches the one expected after the delay
-        if (
-          gameState === "playing" &&
-          puzzle &&
-          currentAttemptNumber + 1 === currentAttemptNumber + 1
-        ) {
-          // Ensure we are resetting for the correct upcoming attempt
-          setCurrentFen(puzzle.initialFen); // Reset board display after delay
-          console.log(
-            `Board reset visually to ${puzzle.initialFen} for attempt ${
-              currentAttemptNumber + 1
-            }.`
-          );
-        } else {
-          console.log(
-            "Board reset skipped as game state changed, puzzle is missing, or attempt number mismatch."
-          );
-        }
+        setGameState((currentGameState) => {
+          setCurrentAttemptNumber((currentNum) => {
+            // Read current number inside timeout
+            // Check conditions again inside the timeout
+            if (currentGameState === "playing" && puzzle) {
+              setCurrentFen(puzzle.initialFen); // Reset board display after delay
+              console.log(
+                `Board reset visually to ${puzzle.initialFen} for attempt ${currentNum}.`
+              );
+            } else {
+              console.log(
+                "Board reset skipped as game state changed, puzzle is missing, or attempt number mismatch post-delay."
+              );
+            }
+            return currentNum; // No change to attempt number here
+          });
+          return currentGameState; // No change to game state here
+        });
       }, BOARD_RESET_DELAY);
 
       console.log(
