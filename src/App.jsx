@@ -115,6 +115,7 @@ function AnimatedFeedbackDisplay({ userSequence, feedback }) {
           $feedbackType={feedback[index]}
           variants={itemVariants}
           layout
+          layoutId={`${index}-${move}`}
         >
           {userSequence.length > 1 ? `${index + 1}. ` : ""}
           {move || "?"}
@@ -669,7 +670,7 @@ function App() {
       <GlobalStyle />
       <AppWrapper>
         <Container>
-          <TopContainer>
+          <TopContainer layout>
             <Title>Chessdle</Title>
             <InfoText>Rating: {puzzle.rating}</InfoText>
             {!isGameOver && (
@@ -682,7 +683,7 @@ function App() {
           </TopContainer>
 
           <>
-            <BoardWrapper>
+            <BoardWrapper layout>
               <Chessboard
                 // Use puzzle ID and initial FEN in key to ensure re-render on new puzzle,
                 // but NOT attempt number, to prevent reset on failed attempt state change
@@ -706,64 +707,66 @@ function App() {
               />
             </BoardWrapper>
 
-            {/* Current Input Sequence */}
-            <CurrentSequenceDisplay>
-              <CurrentSequenceLabel>
-                Current sequence ({userMoveSequence.length}/
-                {puzzle.solution.length} moves):
-              </CurrentSequenceLabel>
-              <CurrentSequenceMoves>
-                {userMoveSequence.join(" ") ||
-                  (gameState === "playing"
-                    ? "(Drag pieces to make moves)"
-                    : "(Game Over)")}
-              </CurrentSequenceMoves>
-            </CurrentSequenceDisplay>
+            <BottomContainer layout>
+              {/* Current Input Sequence */}
+              <CurrentSequenceDisplay>
+                <CurrentSequenceLabel>
+                  Current sequence ({userMoveSequence.length}/
+                  {puzzle.solution.length} moves):
+                </CurrentSequenceLabel>
+                <CurrentSequenceMoves layout>
+                  {userMoveSequence.join(" ") ||
+                    (gameState === "playing"
+                      ? "(Drag pieces to make moves)"
+                      : "(Game Over)")}
+                </CurrentSequenceMoves>
+              </CurrentSequenceDisplay>
 
-            {/* Attempts History */}
-            <HistoryContainer>
-              <AnimatePresence initial={false}>
-                {attemptsHistory.map((attempt, index) => (
-                  <AttemptHistoryItem
-                    key={index}
-                    $isLastAttempt={index === attemptsHistory.length - 1}
-                    $isGameOver={isGameOver}
-                    layout // Ensure smooth layout transitions
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <AttemptLabel>Attempt {index + 1}:</AttemptLabel>
-                    <AnimatedFeedbackDisplay
-                      userSequence={attempt.sequence}
-                      feedback={attempt.feedback}
-                    />
-                  </AttemptHistoryItem>
-                ))}
-              </AnimatePresence>
-            </HistoryContainer>
+              {/* Attempts History */}
+              <HistoryContainer>
+                <AnimatePresence initial={false}>
+                  {attemptsHistory.map((attempt, index) => (
+                    <AttemptHistoryItem
+                      key={index}
+                      $isLastAttempt={index === attemptsHistory.length - 1}
+                      $isGameOver={isGameOver}
+                      layout // Ensure smooth layout transitions
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <AttemptLabel>Attempt {index + 1}:</AttemptLabel>
+                      <AnimatedFeedbackDisplay
+                        userSequence={attempt.sequence}
+                        feedback={attempt.feedback}
+                      />
+                    </AttemptHistoryItem>
+                  ))}
+                </AnimatePresence>
+              </HistoryContainer>
 
-            {/* Action Buttons */}
-            <ControlsWrapper>
-              <StyledButton
-                onClick={handleResetInput}
-                disabled={
-                  userMoveSequence.length === 0 || gameState !== "playing"
-                }
-              >
-                Reset Input
-              </StyledButton>
-              <StyledButton
-                primary
-                onClick={handleSubmit}
-                disabled={
-                  userMoveSequence.length === 0 || gameState !== "playing"
-                }
-              >
-                Submit Attempt {currentAttemptNumber}
-              </StyledButton>
-            </ControlsWrapper>
+              {/* Action Buttons */}
+              <ControlsWrapper>
+                <StyledButton
+                  onClick={handleResetInput}
+                  disabled={
+                    userMoveSequence.length === 0 || gameState !== "playing"
+                  }
+                >
+                  Reset Input
+                </StyledButton>
+                <StyledButton
+                  primary
+                  onClick={handleSubmit}
+                  disabled={
+                    userMoveSequence.length === 0 || gameState !== "playing"
+                  }
+                >
+                  Submit Attempt {currentAttemptNumber}
+                </StyledButton>
+              </ControlsWrapper>
+            </BottomContainer>
           </>
 
           {/* Win/Loss Messages */}
@@ -904,7 +907,7 @@ const Container = styled.div`
   width: 100%;
 `;
 
-const TopContainer = styled.div`
+const TopContainer = styled(motion.div)`
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -937,13 +940,6 @@ const HistoryContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  background-color: var(--background-primary);
-  max-height: 200px;
-  overflow-y: auto;
 `;
 
 const AttemptHistoryItem = styled(motion.div)`
@@ -1005,12 +1001,18 @@ const FeedbackListItem = styled(motion.li)`
   text-align: center;
 `;
 
-const BoardWrapper = styled.div`
+const BoardWrapper = styled(motion.div)`
   max-width: 30rem;
   margin: 0 auto 1.5rem auto;
   box-shadow: 0 6px 20px var(--shadow-color-rgba, rgba(0, 0, 0, 0.3));
   border-radius: 0.375rem;
   overflow: hidden;
+`;
+
+const BottomContainer = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 `;
 
 const CurrentSequenceDisplay = styled.div`
@@ -1024,7 +1026,7 @@ const CurrentSequenceLabel = styled.p`
   margin: 0 0 0.375rem 0;
 `;
 
-const CurrentSequenceMoves = styled.p`
+const CurrentSequenceMoves = styled(motion.p)`
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier,
     monospace;
   font-size: 0.85rem;
