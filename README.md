@@ -6,6 +6,8 @@ Made with ❤️ by me!
 
 Inspired by a story from GM Daniel Naroditsky _(Danya)_, where his teacher had him only say the **final move** of the puzzle, forcing him to calculate the full line.
 
+(Currently shakily held up through a proxy. TBD if this is stable, maybe should move to Vercel eventually)
+
 ## How it Works
 
 Chessdle presents you with the Lichess Puzzle of the Day. Your goal is to figure out the **entire sequence of moves** that solves the puzzle.
