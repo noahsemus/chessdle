@@ -10,6 +10,8 @@ const MAX_ATTEMPTS = 5;
 const CORS_PROXY_URL = "https://api.allorigins.win/raw?url="; // CORS Proxy
 const BOARD_RESET_DELAY = 500; // Delay in ms before resetting board visually after failed attempt
 const LOCAL_STORAGE_KEY_PREFIX = "chessdle_progress_"; // Prefix for localStorage keys
+// Suffix for localStorage key to track if the 'How it Works' modal has been seen for a specific puzzle
+const LOCAL_STORAGE_SEEN_MODAL_SUFFIX = "_seen_modal";
 const GITHUB_URL = "https://github.com/noahsemus/chessdle";
 
 // --- Helper Functions ---
@@ -84,6 +86,19 @@ const messageVariants = {
     transition: { duration: 0.2, ease: "easeIn" },
   },
 };
+const modalBackdropVariants = {
+  visible: { opacity: 1 },
+  hidden: { opacity: 0 },
+};
+const modalContentVariants = {
+  hidden: { y: "-50px", opacity: 0 },
+  visible: {
+    y: "0",
+    opacity: 1,
+    transition: { type: "spring", stiffness: 150, damping: 20 },
+  },
+  exit: { y: "50px", opacity: 0 },
+};
 
 // --- Components ---
 
@@ -133,6 +148,116 @@ function AnimatedFeedbackDisplay({ userSequence, feedback, attemptIndex }) {
   );
 }
 
+function HowItWorksModal({ isOpen, onClose }) {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <ModalBackdrop
+          variants={modalBackdropVariants}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          onClick={onClose}
+          aria-modal="true"
+          role="dialog"
+          aria-labelledby="how-it-works-title"
+        >
+          <ModalContent
+            variants={modalContentVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ModalHeader>
+              <ModalTitle id="how-it-works-title">
+                How Chessdle Works ♟️
+              </ModalTitle>
+              <CloseButton
+                onClick={onClose}
+                aria-label="Close how it works modal"
+              >
+                &times;
+              </CloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <p>
+                Chessdle presents you with the Lichess Puzzle of the Day. Your
+                goal is to figure out the{" "}
+                <strong>entire sequence of moves</strong> that solves the
+                puzzle.
+              </p>
+              <ol>
+                <li>
+                  <strong>Daily Puzzle:</strong> The app fetches the current
+                  Puzzle of the Day from Lichess when loaded.
+                </li>
+                <li>
+                  <strong>Get Feedback:</strong> The app compares your submitted
+                  sequence to the actual solution, move by move, and provides
+                  feedback for each move in your sequence:
+                  <ul>
+                    <li>
+                      <strong>🟩 Green:</strong> Correct move! You moved the
+                      correct piece (from the correct starting square) to the
+                      correct destination square for that step in the sequence.
+                    </li>
+                    <li>
+                      <strong>🟨 Yellow:</strong> Partially correct! EITHER you
+                      moved the correct piece (from the correct starting square)
+                      but to the wrong destination, OR you moved a different
+                      piece but landed on the correct destination square for
+                      that step.
+                    </li>
+                    <li>
+                      <strong>🟥 Red:</strong> Incorrect. Neither the piece's
+                      starting square nor the destination square matches the
+                      correct solution move for that step.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Guessing:</strong> You have a limited number of
+                  attempts (currently set to {MAX_ATTEMPTS}) to guess the entire
+                  sequence correctly.
+                </li>
+                <li>
+                  <strong>Win/Loss:</strong>
+                  <ul>
+                    <li>
+                      You win if all moves in your submitted sequence are Green!
+                      🎉
+                    </li>
+                    <li>
+                      You lose if you run out of attempts. The correct solution
+                      will be shown.
+                    </li>
+                  </ul>
+                </li>
+              </ol>
+              <p>Good luck!</p>
+            </ModalBody>
+          </ModalContent>
+        </ModalBackdrop>
+      )}
+    </AnimatePresence>
+  );
+}
+
 /**
  * Main application component for the Chessdle game.
  * Handles fetching puzzles, game state, user input, validation, and rendering.
@@ -147,6 +272,8 @@ function App() {
   const [currentAttemptNumber, setCurrentAttemptNumber] = useState(1); // Current attempt count
   const [gameState, setGameState] = useState("loading"); // 'loading', 'playing', 'won', 'lost', 'error'
   const [errorMessage, setErrorMessage] = useState(""); // Error messages
+  // Added state for modal visibility
+  const [isHowItWorksModalOpen, setIsHowItWorksModalOpen] = useState(false);
 
   // --- Effects ---
 
@@ -162,6 +289,8 @@ function App() {
       setCurrentFen("start");
       setGame(null);
       setPuzzle(null);
+      // Added: ensure modal is closed initially
+      setIsHowItWorksModalOpen(false);
 
       const targetUrl = CORS_PROXY_URL
         ? CORS_PROXY_URL + encodeURIComponent(LICHESS_DAILY_PUZZLE_URL)
@@ -341,8 +470,13 @@ function App() {
         // --- Load Saved Progress from LocalStorage --- Added Block
         let loadedStateSuccessfully = false;
         const storageKey = `${LOCAL_STORAGE_KEY_PREFIX}${puzzleId}`;
+        // Define key for modal seen status
+        const seenModalKey = `${storageKey}${LOCAL_STORAGE_SEEN_MODAL_SUFFIX}`;
         try {
           const savedDataString = localStorage.getItem(storageKey);
+          // Check if modal has been seen
+          const hasSeenModal = localStorage.getItem(seenModalKey) === "true";
+
           if (savedDataString) {
             console.log("Found saved progress for puzzle:", puzzleId);
             const savedData = JSON.parse(savedDataString);
@@ -370,13 +504,23 @@ function App() {
           } else {
             console.log("No saved progress found for puzzle:", puzzleId);
           }
+
+          // Open modal only if no state loaded AND modal not seen before
+          if (!loadedStateSuccessfully && !hasSeenModal) {
+            setIsHowItWorksModalOpen(true);
+          }
         } catch (storageError) {
           console.error("Error reading from localStorage:", storageError);
           // Proceed with default state if loading fails
         }
 
         // Set to 'playing' only if no valid state was loaded from localStorage
-        if (!loadedStateSuccessfully) {
+        // Check game state isn't already won/lost
+        if (
+          !loadedStateSuccessfully &&
+          gameState !== "won" &&
+          gameState !== "lost"
+        ) {
           setGameState("playing");
         }
         // --- End Load Saved Progress ---
@@ -702,6 +846,25 @@ function App() {
     }
   }; // --- End handleSubmit ---
 
+  const openModal = () => setIsHowItWorksModalOpen(true);
+  const closeModal = () => {
+    setIsHowItWorksModalOpen(false);
+    // Mark modal as seen in localStorage when closed
+    if (puzzle && puzzle.id) {
+      const storageKey = `${LOCAL_STORAGE_KEY_PREFIX}${puzzle.id}`;
+      const seenModalKey = `${storageKey}${LOCAL_STORAGE_SEEN_MODAL_SUFFIX}`;
+      try {
+        localStorage.setItem(seenModalKey, "true");
+        console.log(`Marked modal as seen for puzzle: ${puzzle.id}`);
+      } catch (e) {
+        console.error(
+          "Could not write to localStorage to mark modal as seen:",
+          e
+        );
+      }
+    }
+  };
+
   // --- Render Logic ---
   const isGameOver = gameState === "won" || gameState === "lost";
   const isLastAttempt = currentAttemptNumber === MAX_ATTEMPTS;
@@ -755,6 +918,8 @@ function App() {
   return (
     <>
       <GlobalStyle />
+      <HowItWorksModal isOpen={isHowItWorksModalOpen} onClose={closeModal} />
+
       <AppWrapper>
         <Container>
           <TopContainer layout>
@@ -765,6 +930,9 @@ function App() {
                 <br></br>
                 Guess the whole sequence!
               </InfoText>
+              <HowItWorksButton onClick={openModal}>
+                How it Works?
+              </HowItWorksButton>
             </TitleContainer>
             <InfoText>Rating: {puzzle.rating}</InfoText>
             {!isGameOver && (
@@ -1010,6 +1178,12 @@ const GlobalStyle = createGlobalStyle`
     --message-lost-bg: #5f2120;
     --message-lost-text: #fecaca;
     --message-lost-border: var(--feedback-red);
+
+    /* Added: Variables specifically for the modal */
+    --modal-backdrop-bg: rgba(0, 0, 0, 0.6);
+    --modal-content-bg: var(--dark-green-800);
+    --modal-header-border: rgba(255,255,255,.1);
+    --modal-close-hover-bg: var(--dark-green-700);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1026,6 +1200,25 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .react-chessboard svg { max-width: 100%; height: auto; display: block; }
+
+  /* Basic list styling (used within modal) */
+  ol, ul {
+    padding-left: 1.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+  }
+  strong {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  em {
+    font-style: italic;
+    color: var(--neutral-200);
+  }
 `;
 
 // --- Styled Components ---
@@ -1270,6 +1463,27 @@ const StyledButton = styled.button`
   }
 `;
 
+const HowItWorksButton = styled(StyledButton).attrs({ as: "button" })`
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--accent-primary);
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  margin-top: 0.5rem;
+  align-self: center;
+  box-shadow: none;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  &:active:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+  }
+`;
+
 const Message = styled(motion.div)`
   margin-top: 1rem;
   padding: 1rem;
@@ -1321,6 +1535,90 @@ const GitHubButton = styled.a`
   &:focus-visible {
     outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
+  }
+`;
+
+const ModalBackdrop = styled(motion.div)`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--modal-backdrop-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+`;
+
+const ModalContent = styled(motion.div)`
+  background-color: var(--modal-content-bg);
+  color: var(--text-primary);
+  padding: 1.5rem 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 90vw;
+  width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+
+  @media (max-width: 600px) {
+    padding: 1rem 1.5rem;
+    width: 90vw;
+  }
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--modal-header-border);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+`;
+
+const CloseButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: none;
+  border: none;
+  width: 2rem;
+  height: 2rem;
+  font-size: 2rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  margin: -0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background-color: var(--modal-close-hover-bg);
+    color: var(--text-primary);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 1px;
+  }
+`;
+
+const ModalBody = styled.div`
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--neutral-200);
+
+  & p {
+    margin-bottom: 1rem;
   }
 `;
 
