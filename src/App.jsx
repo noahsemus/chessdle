@@ -1485,7 +1485,7 @@ const HowItWorksButton = styled(StyledButton).attrs({ as: "button" })`
 `;
 
 const Message = styled(motion.div)`
-  margin-top: 1rem;
+  margin-bottom: 1rem;
   padding: 1rem;
   text-align: center;
   border-radius: 0.5rem;
