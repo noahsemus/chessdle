@@ -969,9 +969,9 @@ const GlobalStyle = createGlobalStyle`
 
     --button-primary-bg: var(--accent-primary);
     --button-primary-hover-bg: var(--dark-green-500);
-    --button-secondary-bg: var(--accent-secondary);
-    --button-secondary-hover-bg: var(--orange-600);
-    --button-text: var(--neutral-100);
+    --button-secondary-bg: var(--orange-700);
+    --button-secondary-hover-bg: var(--orange-800);
+    --button-text: var(--neutral-900);
     --button-disabled-opacity: 0.6;
 
     --message-won-bg: var(--dark-green-800);
@@ -1093,6 +1093,7 @@ const FeedbackList = styled(motion.ul)`
 `;
 
 const FeedbackListItem = styled(motion.div)`
+  width: 6rem;
   padding: 0.25rem 0.6rem;
   border-radius: 0.375rem;
   font-size: 0.8rem;
