@@ -441,8 +441,8 @@ function App() {
         setGame(chessInstance);
         setCurrentFen(finalInitialFen); // Set initial board display
 
-        // --- Load Saved Progress from LocalStorage --- Added Block
-        let loadedStateSuccessfully = false;
+        // --- Load Saved Progress from LocalStorage
+        let loadedStateSuccessfully = false; // Assume failure initially
         const storageKey = `${LOCAL_STORAGE_KEY_PREFIX}${puzzleId}`;
         // Define key for modal seen status
         const seenModalKey = `${storageKey}${LOCAL_STORAGE_SEEN_MODAL_SUFFIX}`;
@@ -454,26 +454,42 @@ function App() {
           if (savedDataString) {
             console.log("Found saved progress for puzzle:", puzzleId);
             const savedData = JSON.parse(savedDataString);
-            // Validate loaded data structure minimally
+
+            // Check if the saved state indicates the puzzle was already completed
             if (
+              savedData.gameState === "won" ||
+              savedData.gameState === "lost"
+            ) {
+              console.log(
+                `Saved state for puzzle ${puzzleId} is '${savedData.gameState}'. Ignoring saved state and starting fresh.`
+              );
+              // Remove the completed state entry to prevent loading it again
+              localStorage.removeItem(storageKey);
+              // Do NOT set loadedStateSuccessfully = true;
+            }
+            // Else, check if the saved data is valid and represents an ongoing game
+            else if (
               savedData &&
               Array.isArray(savedData.attemptsHistory) &&
               typeof savedData.currentAttemptNumber === "number" &&
-              typeof savedData.gameState === "string"
+              savedData.gameState === "playing" // Explicitly check for 'playing' state to restore
             ) {
-              // Restore state from localStorage
+              // Restore state ONLY if it was 'playing'
               setAttemptsHistory(savedData.attemptsHistory);
               setCurrentAttemptNumber(savedData.currentAttemptNumber);
-              setGameState(savedData.gameState); // Restore previous game state
-              // Ensure board reflects initial state if game is still playing, or final state doesn't matter if won/lost
+              setGameState(savedData.gameState); // Restore 'playing' state
+              // Ensure board reflects initial state if game is still playing
               setCurrentFen(finalInitialFen);
               loadedStateSuccessfully = true; // Mark loading as successful
-              console.log("Restored state:", savedData);
+              console.log("Restored 'playing' state:", savedData);
             } else {
+              // Invalid or non-'playing' data found
               console.warn(
-                "Invalid data found in localStorage for this puzzle, starting fresh."
+                `Invalid or non-restorable (${
+                  savedData.gameState || "unknown"
+                }) data found in localStorage for this puzzle, starting fresh.`
               );
-              localStorage.removeItem(storageKey); // Clear invalid data
+              localStorage.removeItem(storageKey); // Clear invalid/non-restorable data
             }
           } else {
             console.log("No saved progress found for puzzle:", puzzleId);
@@ -485,19 +501,17 @@ function App() {
           }
         } catch (storageError) {
           console.error("Error reading from localStorage:", storageError);
-          // Proceed with default state if loading fails
+          localStorage.removeItem(storageKey); // Clear potentially corrupted data
         }
 
-        // Set to 'playing' only if no valid state was loaded from localStorage
-        // Check game state isn't already won/lost
-        if (
-          !loadedStateSuccessfully &&
-          gameState !== "won" &&
-          gameState !== "lost"
-        ) {
+        // Set to 'playing' only if no valid 'playing' state was loaded from localStorage
+        if (!loadedStateSuccessfully) {
           setGameState("playing");
+          console.log(
+            "Setting gameState to 'playing' as no valid saved state was loaded."
+          );
         }
-        // --- End Load Saved Progress ---
+        // --- Load Saved Progress from LocalStorage ---
 
         console.log("Puzzle loaded successfully:", {
           id: puzzleId,
@@ -517,6 +531,7 @@ function App() {
     };
 
     fetchDailyPuzzle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only on mount
 
   // --- Effect to Save Progress to LocalStorage
@@ -529,18 +544,21 @@ function App() {
       gameState !== "error"
     ) {
       const storageKey = `${LOCAL_STORAGE_KEY_PREFIX}${puzzle.id}`;
-      const dataToSave = {
-        attemptsHistory,
-        currentAttemptNumber,
-        gameState,
-      };
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(dataToSave));
-      } catch (storageError) {
-        console.error(
-          "Error writing game state to localStorage:",
-          storageError
-        );
+      // Only save if the state is 'playing', 'won', or 'lost'. Avoid saving intermediate states.
+      if (["playing", "won", "lost"].includes(gameState)) {
+        const dataToSave = {
+          attemptsHistory,
+          currentAttemptNumber,
+          gameState,
+        };
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+        } catch (storageError) {
+          console.error(
+            "Error writing game state to localStorage:",
+            storageError
+          );
+        }
       }
     }
     // Dependencies: Save when these state variables change after initial load
