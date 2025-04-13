@@ -190,9 +190,7 @@ function HowItWorksModal({ isOpen, onClose }) {
               &times;
             </CloseButton>
             <ModalScrollContainer>
-              <ModalTitle id="how-it-works-title">
-                How Chessdle Works ♟️
-              </ModalTitle>
+              <ModalTitle id="how-it-works-title">♟️ Chessdle Rules</ModalTitle>
               <ModalBody>
                 <p>
                   Chessdle presents you with the Lichess Puzzle of the Day. Your
@@ -200,55 +198,30 @@ function HowItWorksModal({ isOpen, onClose }) {
                   <strong>entire sequence of moves</strong> that solves the
                   puzzle.
                 </p>
-                <ol>
-                  <li>
-                    <strong>Daily Puzzle:</strong> The app fetches the current
-                    Puzzle of the Day from Lichess when loaded.
-                  </li>
-                  <li>
-                    <strong>Get Feedback:</strong> The app compares your
-                    submitted sequence to the actual solution, move by move, and
-                    provides feedback for each move in your sequence:
-                    <ul>
-                      <li>
-                        <strong>🟩 Green:</strong> Correct move! You moved the
-                        correct piece (from the correct starting square) to the
-                        correct destination square for that step in the
-                        sequence.
-                      </li>
-                      <li>
-                        <strong>🟨 Yellow:</strong> Partially correct! EITHER
-                        you moved the correct piece (from the correct starting
-                        square) but to the wrong destination, OR you moved a
-                        different piece but landed on the correct destination
-                        square for that step.
-                      </li>
-                      <li>
-                        <strong>🟥 Red:</strong> Incorrect. Neither the piece's
-                        starting square nor the destination square matches the
-                        correct solution move for that step.
-                      </li>
-                    </ul>
-                  </li>
-                  <li>
-                    <strong>Guessing:</strong> You have a limited number of
-                    attempts (currently set to {MAX_ATTEMPTS}) to guess the
-                    entire sequence correctly.
-                  </li>
-                  <li>
-                    <strong>Win/Loss:</strong>
-                    <ul>
-                      <li>
-                        You win if all moves in your submitted sequence are
-                        Green! 🎉
-                      </li>
-                      <li>
-                        You lose if you run out of attempts. The correct
-                        solution will be shown.
-                      </li>
-                    </ul>
-                  </li>
-                </ol>
+                <p>
+                  <strong>How it works:</strong> You recieve feedback for each
+                  move in your sequence:
+                  <ul>
+                    <li>
+                      <strong>🟩 Green:</strong> Correct move! You moved the
+                      correct piece to the correct destination.
+                    </li>
+                    <li>
+                      <strong>🟨 Yellow:</strong> Partially correct! EITHER you
+                      moved the correct piece to the wrong destination, OR you
+                      moved a different piece but landed on the correct
+                      destination.
+                    </li>
+                    <li>
+                      <strong>🟥 Red:</strong> Incorrect.
+                    </li>
+                  </ul>
+                </p>
+                <p>
+                  <strong>Guessing:</strong> You have {MAX_ATTEMPTS} attempts to
+                  guess the entire sequence correctly.
+                </p>
+
                 <p>Good luck!</p>
               </ModalBody>
             </ModalScrollContainer>
@@ -1100,7 +1073,7 @@ function App() {
                 Check out the source code!
               </GitHubButton>
               <HowItWorksButton onClick={openModal}>
-                How it Works?
+                Chessdle Rules
               </HowItWorksButton>
             </ButtonContainer>
           </AnimatePresence>
