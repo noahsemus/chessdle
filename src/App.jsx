@@ -994,7 +994,7 @@ const AppWrapper = styled.div`
 const Container = styled.div`
   padding: 2rem;
   padding-bottom: 8rem;
-  max-width: 35rem;
+  max-width: 45rem;
   width: 100%;
 `;
 
