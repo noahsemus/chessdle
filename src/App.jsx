@@ -10,6 +10,7 @@ const MAX_ATTEMPTS = 5;
 const CORS_PROXY_URL = "https://api.allorigins.win/raw?url="; // CORS Proxy
 const BOARD_RESET_DELAY = 500; // Delay in ms before resetting board visually after failed attempt
 const LOCAL_STORAGE_KEY_PREFIX = "chessdle_progress_"; // Prefix for localStorage keys
+const GITHUB_URL = "https://github.com/noahsemus/chessdle";
 
 // --- Helper Functions ---
 
@@ -773,6 +774,18 @@ function App() {
                 <TurnText>{puzzle.playerColor} to move</TurnText>
               </InfoText>
             )}
+            <GitHubButton
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img
+                src="github-mark-white.svg"
+                alt="GitHub logo"
+                style={{ height: "1em", width: "1em" }}
+              />
+              Check out the source code!
+            </GitHubButton>
           </TopContainer>
 
           <>
@@ -1036,6 +1049,7 @@ const TopContainer = styled(motion.div)`
   flex-direction: column;
   gap: 0.25rem;
   padding: 1.5rem;
+  position: relative;
 `;
 
 const InfoText = styled.p`
@@ -1283,6 +1297,32 @@ const SolutionText = styled.p`
   font-weight: 400;
   color: inherit;
   word-break: keep-all;
+`;
+
+const GitHubButton = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: var(--neutral-100);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 0.375rem;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background-color 150ms ease-in-out;
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
 `;
 
 export default App;
