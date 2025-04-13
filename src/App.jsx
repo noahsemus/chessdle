@@ -675,9 +675,9 @@ function App() {
             <InfoText>Rating: {puzzle.rating}</InfoText>
             {!isGameOver && (
               <InfoText>
-                Attempt {currentAttemptNumber} of {MAX_ATTEMPTS}. Find the{" "}
-                {puzzle.solution.length}-move solution. Turn:{" "}
-                <TurnText>{puzzle.playerColor}</TurnText>
+                {`Attempt ${currentAttemptNumber} of ${MAX_ATTEMPTS}. Find the 
+                ${puzzle.solution.length}-move solution. `}
+                <TurnText>{puzzle.playerColor} to move</TurnText>
               </InfoText>
             )}
           </TopContainer>
@@ -730,16 +730,21 @@ function App() {
                       key={index}
                       $isLastAttempt={index === attemptsHistory.length - 1}
                       $isGameOver={isGameOver}
-                      layout // Ensure smooth layout transitions
+                      layout
+                      layoutId={index}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <AttemptLabel>Attempt {index + 1}:</AttemptLabel>
+                      <AttemptLabel layout layoutId={`${index}-label`}>
+                        Attempt {index + 1}:
+                      </AttemptLabel>
                       <AnimatedFeedbackDisplay
                         userSequence={attempt.sequence}
                         feedback={attempt.feedback}
+                        layout
+                        layoutId={`${index}-label`}
                       />
                     </AttemptHistoryItem>
                   ))}
@@ -852,7 +857,7 @@ const GlobalStyle = createGlobalStyle`
     --border-color: var(--dark-green-700);
     --accent-primary: var(--dark-green-400);
     --accent-secondary: var(--orange-500);
-    --shadow-color-rgba: rgba(0, 20, 15, 0.5);
+    --shadow-color-rgba: rgba(0, 20, 15, 1);
 
     --feedback-green: var(--dark-green-500);
     --feedback-yellow: var(--orange-500);
@@ -903,7 +908,8 @@ const AppWrapper = styled.div`
 
 const Container = styled.div`
   padding: 2rem;
-  max-width: 40rem;
+  padding-bottom: 8rem;
+  max-width: 35rem;
   width: 100%;
 `;
 
@@ -943,24 +949,24 @@ const HistoryContainer = styled.div`
 `;
 
 const AttemptHistoryItem = styled(motion.div)`
-  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+  padding-top: 0.75rem;
   border-radius: 0.375rem;
-  border: 1px solid var(--border-color);
   background-color: var(--background-secondary);
   ${({ $isLastAttempt, $isGameOver }) =>
     $isLastAttempt &&
     $isGameOver &&
     `
-      border-width: 2px;
-      border-color: var(--accent-primary);
       box-shadow: 0 0 0 2px var(--accent-primary-rgba, rgba(52, 211, 153, 0.3));
     `}
 `;
 
-const AttemptLabel = styled.p`
+const AttemptLabel = styled(motion.p)`
   font-size: 0.8rem;
   font-weight: 600;
-  margin-bottom: 0.375rem;
   color: var(--text-secondary);
 `;
 
@@ -1002,11 +1008,13 @@ const FeedbackListItem = styled(motion.li)`
 `;
 
 const BoardWrapper = styled(motion.div)`
-  max-width: 30rem;
-  margin: 0 auto 1.5rem auto;
-  box-shadow: 0 6px 20px var(--shadow-color-rgba, rgba(0, 0, 0, 0.3));
   border-radius: 0.375rem;
-  overflow: hidden;
+  padding: 1rem 0 3rem 0;
+  overflow: visible;
+
+  & > * {
+    box-shadow: 0 8px 24px var(--shadow-color-rgba, rgba(0, 0, 0, 0.3));
+  }
 `;
 
 const BottomContainer = styled(motion.div)`
@@ -1036,9 +1044,8 @@ const CurrentSequenceMoves = styled(motion.p)`
   line-height: 1.5;
   margin: 0;
   background-color: var(--background-secondary);
-  padding: 0.25rem 0.5rem;
+  padding: 1rem;
   border-radius: 0.25rem;
-  border: 1px solid var(--border-color);
 `;
 
 const ControlsWrapper = styled.div`
