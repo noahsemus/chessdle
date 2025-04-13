@@ -930,9 +930,6 @@ function App() {
                 <br></br>
                 Guess the whole sequence!
               </InfoText>
-              <HowItWorksButton onClick={openModal}>
-                How it Works?
-              </HowItWorksButton>
             </TitleContainer>
             <InfoText>Rating: {puzzle.rating}</InfoText>
             {!isGameOver && (
@@ -1089,18 +1086,23 @@ function App() {
                 </SolutionText>
               </Message>
             )}
-            <GitHubButton
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img
-                src="github-mark-white.svg"
-                alt="GitHub logo"
-                style={{ height: "1em", width: "1em", opacity: 0.5 }}
-              />
-              Check out the source code!
-            </GitHubButton>
+            <ButtonContainer>
+              <GitHubButton
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src="github-mark-white.svg"
+                  alt="GitHub logo"
+                  style={{ height: "1em", width: "1em", opacity: 0.5 }}
+                />
+                Check out the source code!
+              </GitHubButton>
+              <HowItWorksButton onClick={openModal}>
+                How it Works?
+              </HowItWorksButton>
+            </ButtonContainer>
           </AnimatePresence>
         </Container>
       </AppWrapper>
@@ -1236,6 +1238,10 @@ const Container = styled.div`
   max-width: 45rem;
   width: 100%;
   text-align: center;
+
+  @media (max-width: 700px) {
+    padding: 1rem;
+  }
 `;
 
 const TopContainer = styled(motion.div)`
@@ -1355,6 +1361,7 @@ const PlaceholderText = styled(motion.span)`
   left: 50%;
   transform: translate(-50%, -50%);
   color: rgba(255, 255, 255, 0.25);
+  white-space: nowrap;
 `;
 
 const BoardWrapper = styled(motion.div)`
@@ -1463,15 +1470,23 @@ const StyledButton = styled.button`
   }
 `;
 
+const ButtonContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+`;
+
 const HowItWorksButton = styled(StyledButton).attrs({ as: "button" })`
+  display: inline-block;
   background: rgba(255, 255, 255, 0.05);
-  color: var(--accent-primary);
+  color: rgba(255, 255, 255, 0.25);
   padding: 0.4rem 0.8rem;
   font-size: 0.8rem;
   font-weight: 500;
   text-transform: none;
   letter-spacing: normal;
-  margin-top: 0.5rem;
   align-self: center;
   box-shadow: none;
 
@@ -1517,6 +1532,7 @@ const SolutionText = styled.p`
 
 const GitHubButton = styled.a`
   display: inline-flex;
+  width: fit-content;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem 0.5rem 0.75rem;
