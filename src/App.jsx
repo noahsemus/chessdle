@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import styled, { createGlobalStyle } from "styled-components";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion"; // Corrected import path
 
 // --- Constants ---
 const LICHESS_DAILY_PUZZLE_URL = "https://lichess.org/api/puzzle/daily";
 const MAX_ATTEMPTS = 5;
 const CORS_PROXY_URL = "https://api.allorigins.win/raw?url="; // CORS Proxy
+const BOARD_RESET_DELAY = 500; // Delay in ms before resetting board visually after failed attempt
 
 // --- Helper Functions ---
 
@@ -311,21 +312,24 @@ function App() {
         // --- Set Game State ---
         const playerColor =
           finalInitialFen.split(" ")[1] === "w" ? "white" : "black";
+        const puzzleId =
+          data.puzzle?.id ||
+          `lichess_daily_${new Date().toISOString().split("T")[0]}`;
+        const puzzleRating = data.puzzle?.rating || "N/A";
+
         setPuzzle({
-          id:
-            data.puzzle?.id ||
-            `lichess_daily_${new Date().toISOString().split("T")[0]}`,
-          rating: data.puzzle?.rating || "N/A",
+          id: puzzleId,
+          rating: puzzleRating,
           initialFen: finalInitialFen,
-          solution: solution,
+          solution: solution, // Store as UCI
           playerColor: playerColor,
         });
         setGame(chessInstance);
         setCurrentFen(finalInitialFen);
         setGameState("playing");
         console.log("Puzzle loaded successfully:", {
-          id: puzzle?.id,
-          rating: puzzle?.rating,
+          id: puzzleId,
+          rating: puzzleRating,
           fen: finalInitialFen,
           turn: playerColor,
         });
@@ -353,11 +357,41 @@ function App() {
     (sourceSquare, targetSquare, piece) => {
       if (gameState !== "playing" || !puzzle || !currentFen) return false;
 
+      // If starting a new sequence after a submit, ensure the board is visually reset first
+      // This handles cases where the timeout might not have finished before user interaction
+      if (userMoveSequence.length === 0 && currentFen !== puzzle.initialFen) {
+        console.log("Detected start of new sequence, ensuring board is reset.");
+        setCurrentFen(puzzle.initialFen);
+        // Use the initial FEN for this move validation
+        const gameCopy = new Chess(puzzle.initialFen);
+        let moveResult = null;
+        try {
+          moveResult = gameCopy.move({
+            from: sourceSquare,
+            to: targetSquare,
+            promotion: "q",
+          });
+        } catch (error) {
+          console.error("Error attempting first move of new sequence:", error);
+          return false;
+        }
+        if (moveResult === null) {
+          console.log(
+            `Illegal first move attempted: ${sourceSquare}-${targetSquare}`
+          );
+          return false;
+        }
+        console.log(`Valid first move made: ${moveResult.san}`);
+        setCurrentFen(gameCopy.fen());
+        setUserMoveSequence([moveResult.san]);
+        return true;
+      }
+
       if (typeof Chess === "undefined") {
         console.error("Chess.js not loaded in onDrop callback.");
         return false;
       }
-      const gameCopy = new Chess(currentFen);
+      const gameCopy = new Chess(currentFen); // Use the current FEN for subsequent moves
       let moveResult = null;
 
       try {
@@ -383,7 +417,7 @@ function App() {
       setUserMoveSequence((prev) => [...prev, moveResult.san]);
       return true; // Signal success to react-chessboard
     },
-    [currentFen, gameState, puzzle]
+    [currentFen, gameState, puzzle, userMoveSequence]
   );
 
   /**
@@ -541,14 +575,42 @@ function App() {
       setGameState("lost");
       console.log("Game Lost - Max attempts reached.");
     } else {
-      // Continue playing
-      setGameState("playing");
+      // Continue playing - Failed attempt
+      setGameState("playing"); // Ensure state is playing
       setCurrentAttemptNumber((prev) => prev + 1);
-      setUserMoveSequence([]);
-      if (puzzle) setCurrentFen(puzzle.initialFen); // Reset board display
+      setUserMoveSequence([]); // Clear input sequence for next attempt
+
+      // **MODIFICATION START**: Delay visual board reset
       console.log(
-        `Attempt ${currentAttemptNumber} submitted. Proceeding to attempt ${
-          currentAttemptNumber + 1
+        `Attempt ${currentAttemptNumber} failed. Delaying board reset.`
+      );
+      setTimeout(() => {
+        // Check if the game is still in 'playing' state and puzzle exists
+        // This prevents resetting if the user quickly starts a new game or encounters an error
+        // Also check if the current attempt number matches the one expected after the delay
+        if (
+          gameState === "playing" &&
+          puzzle &&
+          currentAttemptNumber + 1 === currentAttemptNumber + 1
+        ) {
+          // Ensure we are resetting for the correct upcoming attempt
+          setCurrentFen(puzzle.initialFen); // Reset board display after delay
+          console.log(
+            `Board reset visually to ${puzzle.initialFen} for attempt ${
+              currentAttemptNumber + 1
+            }.`
+          );
+        } else {
+          console.log(
+            "Board reset skipped as game state changed, puzzle is missing, or attempt number mismatch."
+          );
+        }
+      }, BOARD_RESET_DELAY);
+      // **MODIFICATION END**
+
+      console.log(
+        `Proceeding to attempt ${
+          currentAttemptNumber + 1 // Log the *next* attempt number correctly
         }.`
       );
     }
@@ -559,29 +621,35 @@ function App() {
 
   if (gameState === "loading") {
     return (
-      <AppWrapper>
-        <Container>Loading Daily Puzzle...</Container>
-      </AppWrapper>
+      <>
+        <GlobalStyle />
+        <AppWrapper>
+          <Container>Loading Daily Puzzle...</Container>
+        </AppWrapper>
+      </>
     );
   }
 
   if (gameState === "error") {
     return (
-      <AppWrapper>
-        <Container>
-          <InfoText
-            style={{
-              color: "var(--feedback-red, #ef4444)",
-              fontWeight: "bold",
-            }}
-          >
-            Error:
-          </InfoText>
-          <InfoText style={{ color: "var(--text-secondary, #a0a0a0)" }}>
-            {errorMessage}
-          </InfoText>
-        </Container>
-      </AppWrapper>
+      <>
+        <GlobalStyle />
+        <AppWrapper>
+          <Container>
+            <InfoText
+              style={{
+                color: "var(--feedback-red, #ef4444)",
+                fontWeight: "bold",
+              }}
+            >
+              Error:
+            </InfoText>
+            <InfoText style={{ color: "var(--text-secondary, #a0a0a0)" }}>
+              {errorMessage}
+            </InfoText>
+          </Container>
+        </AppWrapper>
+      </>
     );
   }
 
@@ -617,7 +685,9 @@ function App() {
           <>
             <BoardWrapper>
               <Chessboard
-                key={`${puzzle.id}-${currentAttemptNumber}`}
+                // Use puzzle ID and initial FEN in key to ensure re-render on new puzzle,
+                // but NOT attempt number, to prevent reset on failed attempt state change
+                key={`${puzzle.id}-${puzzle.initialFen}`}
                 id="ChessdleBoard"
                 position={currentFen}
                 onPieceDrop={onDrop}
@@ -644,7 +714,10 @@ function App() {
                 {puzzle.solution.length} moves):
               </CurrentSequenceLabel>
               <CurrentSequenceMoves>
-                {userMoveSequence.join(" ") || "(Drag pieces to make moves)"}
+                {userMoveSequence.join(" ") ||
+                  (gameState === "playing"
+                    ? "(Drag pieces to make moves)"
+                    : "(Game Over)")}
               </CurrentSequenceMoves>
             </CurrentSequenceDisplay>
 
@@ -656,7 +729,7 @@ function App() {
                     key={index}
                     $isLastAttempt={index === attemptsHistory.length - 1}
                     $isGameOver={isGameOver}
-                    layout
+                    layout // Ensure smooth layout transitions
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
@@ -781,7 +854,7 @@ const GlobalStyle = createGlobalStyle`
 
     --feedback-green: var(--dark-green-500);
     --feedback-yellow: var(--orange-500);
-    --feedback-red: #ef4444; 
+    --feedback-red: #ef4444;
     --feedback-yellow-text: var(--neutral-900);
 
     --board-light: var(--dark-green-300);
@@ -791,14 +864,14 @@ const GlobalStyle = createGlobalStyle`
     --button-primary-hover-bg: var(--dark-green-500);
     --button-secondary-bg: var(--accent-secondary);
     --button-secondary-hover-bg: var(--orange-600);
-    --button-text: var(--neutral-100); 
+    --button-text: var(--neutral-100);
     --button-disabled-opacity: 0.6;
 
     --message-won-bg: var(--dark-green-800);
     --message-won-text: var(--dark-green-200);
     --message-won-border: var(--dark-green-500);
-    --message-lost-bg: #5f2120; 
-    --message-lost-text: #fecaca; 
+    --message-lost-bg: #5f2120;
+    --message-lost-text: #fecaca;
     --message-lost-border: var(--feedback-red);
   }
 
@@ -806,7 +879,7 @@ const GlobalStyle = createGlobalStyle`
 
   body {
     font-family: 'National Park', serif;
-    background-color: var(--background-primary); 
+    background-color: var(--background-primary);
     color: var(--text-primary);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
