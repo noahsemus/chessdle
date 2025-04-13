@@ -183,74 +183,75 @@ function HowItWorksModal({ isOpen, onClose }) {
             exit="exit"
             onClick={(e) => e.stopPropagation()}
           >
-            <ModalHeader>
+            <CloseButton
+              onClick={onClose}
+              aria-label="Close how it works modal"
+            >
+              &times;
+            </CloseButton>
+            <ModalScrollContainer>
               <ModalTitle id="how-it-works-title">
                 How Chessdle Works ♟️
               </ModalTitle>
-              <CloseButton
-                onClick={onClose}
-                aria-label="Close how it works modal"
-              >
-                &times;
-              </CloseButton>
-            </ModalHeader>
-            <ModalBody>
-              <p>
-                Chessdle presents you with the Lichess Puzzle of the Day. Your
-                goal is to figure out the{" "}
-                <strong>entire sequence of moves</strong> that solves the
-                puzzle.
-              </p>
-              <ol>
-                <li>
-                  <strong>Daily Puzzle:</strong> The app fetches the current
-                  Puzzle of the Day from Lichess when loaded.
-                </li>
-                <li>
-                  <strong>Get Feedback:</strong> The app compares your submitted
-                  sequence to the actual solution, move by move, and provides
-                  feedback for each move in your sequence:
-                  <ul>
-                    <li>
-                      <strong>🟩 Green:</strong> Correct move! You moved the
-                      correct piece (from the correct starting square) to the
-                      correct destination square for that step in the sequence.
-                    </li>
-                    <li>
-                      <strong>🟨 Yellow:</strong> Partially correct! EITHER you
-                      moved the correct piece (from the correct starting square)
-                      but to the wrong destination, OR you moved a different
-                      piece but landed on the correct destination square for
-                      that step.
-                    </li>
-                    <li>
-                      <strong>🟥 Red:</strong> Incorrect. Neither the piece's
-                      starting square nor the destination square matches the
-                      correct solution move for that step.
-                    </li>
-                  </ul>
-                </li>
-                <li>
-                  <strong>Guessing:</strong> You have a limited number of
-                  attempts (currently set to {MAX_ATTEMPTS}) to guess the entire
-                  sequence correctly.
-                </li>
-                <li>
-                  <strong>Win/Loss:</strong>
-                  <ul>
-                    <li>
-                      You win if all moves in your submitted sequence are Green!
-                      🎉
-                    </li>
-                    <li>
-                      You lose if you run out of attempts. The correct solution
-                      will be shown.
-                    </li>
-                  </ul>
-                </li>
-              </ol>
-              <p>Good luck!</p>
-            </ModalBody>
+              <ModalBody>
+                <p>
+                  Chessdle presents you with the Lichess Puzzle of the Day. Your
+                  goal is to figure out the{" "}
+                  <strong>entire sequence of moves</strong> that solves the
+                  puzzle.
+                </p>
+                <ol>
+                  <li>
+                    <strong>Daily Puzzle:</strong> The app fetches the current
+                    Puzzle of the Day from Lichess when loaded.
+                  </li>
+                  <li>
+                    <strong>Get Feedback:</strong> The app compares your
+                    submitted sequence to the actual solution, move by move, and
+                    provides feedback for each move in your sequence:
+                    <ul>
+                      <li>
+                        <strong>🟩 Green:</strong> Correct move! You moved the
+                        correct piece (from the correct starting square) to the
+                        correct destination square for that step in the
+                        sequence.
+                      </li>
+                      <li>
+                        <strong>🟨 Yellow:</strong> Partially correct! EITHER
+                        you moved the correct piece (from the correct starting
+                        square) but to the wrong destination, OR you moved a
+                        different piece but landed on the correct destination
+                        square for that step.
+                      </li>
+                      <li>
+                        <strong>🟥 Red:</strong> Incorrect. Neither the piece's
+                        starting square nor the destination square matches the
+                        correct solution move for that step.
+                      </li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Guessing:</strong> You have a limited number of
+                    attempts (currently set to {MAX_ATTEMPTS}) to guess the
+                    entire sequence correctly.
+                  </li>
+                  <li>
+                    <strong>Win/Loss:</strong>
+                    <ul>
+                      <li>
+                        You win if all moves in your submitted sequence are
+                        Green! 🎉
+                      </li>
+                      <li>
+                        You lose if you run out of attempts. The correct
+                        solution will be shown.
+                      </li>
+                    </ul>
+                  </li>
+                </ol>
+                <p>Good luck!</p>
+              </ModalBody>
+            </ModalScrollContainer>
           </ModalContent>
         </ModalBackdrop>
       )}
@@ -1165,7 +1166,7 @@ const GlobalStyle = createGlobalStyle`
 
   body {
     font-family: 'National Park', serif;
-    letter-spacing: .15ch;
+    letter-spacing: .1ch;
     background-color: var(--dark-green-900);
     color: var(--neutral-100);
     line-height: 1.5;
@@ -1214,6 +1215,7 @@ const Container = styled.div`
 
   @media (max-width: 700px) {
     padding: 1rem;
+    padding-bottom: 4rem;
   }
 `;
 
@@ -1540,52 +1542,62 @@ const ModalBackdrop = styled(motion.div)`
 `;
 
 const ModalContent = styled(motion.div)`
+  display: flex;
   background-color: var(--dark-green-800);
   color: var(--neutral-100);
-  padding: 1.5rem 2rem;
   border-radius: 0.5rem;
   box-shadow: 0 10px 30px var(--state-black-30);
   max-width: 90vw;
   width: 500px;
   max-height: 85vh;
-  overflow-y: auto;
+  overflow-y: hidden;
   position: relative;
 
-  @media (max-width: 600px) {
-    padding: 1rem 1.5rem;
+  @media (max-width: 700px) {
     width: 90vw;
   }
 `;
 
-const ModalHeader = styled.div`
+const ModalTitle = styled.div`
+  position: static;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--state-white-10);
   padding-bottom: 1rem;
   margin-bottom: 1rem;
-`;
 
-const ModalTitle = styled.h2`
   font-size: 1.4rem;
   font-weight: 600;
   color: var(--neutral-100);
+`;
+
+const ModalScrollContainer = styled.div`
+  flex: 1;
+  overflow: auto;
+  padding: 2rem;
+
+  @media (max-width: 700px) {
+    padding: 2rem;
+  }
 `;
 
 const CloseButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  letter-spacing: 0;
 
   background: none;
   border: none;
-  width: 2rem;
-  height: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   font-size: 2rem;
   color: var(--state-white-50);
   cursor: pointer;
-  padding: 0.25rem;
-  margin: -0.5rem;
   border-radius: 50%;
   transition: background-color 0.15s ease, color 0.15s ease;
 
