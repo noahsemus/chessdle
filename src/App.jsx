@@ -580,7 +580,7 @@ function App() {
       setCurrentAttemptNumber((prev) => prev + 1);
       setUserMoveSequence([]); // Clear input sequence for next attempt
 
-      // **MODIFICATION START**: Delay visual board reset
+      // Delay visual board reset
       console.log(
         `Attempt ${currentAttemptNumber} failed. Delaying board reset.`
       );
@@ -606,7 +606,6 @@ function App() {
           );
         }
       }, BOARD_RESET_DELAY);
-      // **MODIFICATION END**
 
       console.log(
         `Proceeding to attempt ${
