@@ -117,7 +117,7 @@ function AnimatedFeedbackDisplay({ userSequence, feedback, attemptIndex }) {
       <div
         style={{
           fontSize: "0.75rem",
-          color: "var(--feedback-red, #ef4444)",
+          color: "var(--state-red-55)",
           padding: "0.25rem",
         }}
       >
@@ -888,13 +888,13 @@ function App() {
           <Container>
             <InfoText
               style={{
-                color: "var(--feedback-red, #ef4444)",
+                color: "var(--state-red-55)",
                 fontWeight: "bold",
               }}
             >
               Error:
             </InfoText>
-            <InfoText style={{ color: "var(--text-secondary, #a0a0a0)" }}>
+            <InfoText style={{ color: "var(--state-white-50)" }}>
               {errorMessage}
             </InfoText>
           </Container>
@@ -954,14 +954,13 @@ function App() {
                 arePiecesDraggable={gameState === "playing"}
                 customBoardStyle={{
                   borderRadius: "4px",
-                  boxShadow:
-                    "0 4px 15px var(--shadow-color-rgba, rgba(0, 0, 0, 0.2))",
+                  boxShadow: "0 4px 15px var(--state-shadow-dark)",
                 }}
                 customDarkSquareStyle={{
-                  backgroundColor: "var(--board-dark, #6b8f4b)",
+                  backgroundColor: "var(--dark-green-600)",
                 }}
                 customLightSquareStyle={{
-                  backgroundColor: "var(--board-light, #c2d1b0)",
+                  backgroundColor: "var(--dark-green-300)",
                 }}
               />
             </BoardWrapper>
@@ -1147,45 +1146,33 @@ const GlobalStyle = createGlobalStyle`
     --neutral-800: #455a64;
     --neutral-900: #37474f;
 
-    /* Semantic Mapping */
-    --background-primary: var(--dark-green-900);
-    --background-secondary: var(--dark-green-800);
-    --background-tertiary: var(--dark-green-700);
-    --text-primary: var(--neutral-100);
-    --text-secondary: rgba(255, 255, 255, 0.5);
-    --border-color: var(--dark-green-700);
-    --accent-primary: var(--dark-green-400);
-    --accent-secondary: var(--orange-500);
-    --shadow-color-rgba: rgba(0, 20, 15, 1);
+    /* State/Opacity Variables */
+    --state-white-05: rgba(255, 255, 255, 0.05);
+    --state-white-10: rgba(255, 255, 255, 0.1);
+    --state-white-25: rgba(255, 255, 255, 0.25);
+    --state-white-50: rgba(255, 255, 255, 0.5);
 
-    --feedback-green: var(--dark-green-500);
-    --feedback-yellow: var(--orange-500);
-    --feedback-red: rgba(255, 0, 0, 0.555);
+    --state-black-10: rgba(0, 0, 0, 0.1);
+    --state-black-20: rgba(0, 0, 0, 0.2);
+    --state-black-30: rgba(0, 0, 0, 0.3);
+    --state-black-60: rgba(0, 0, 0, 0.6);
+
+    --state-shadow-dark: rgba(0, 20, 15, 1);
+    
+    --state-red-55: rgba(255, 0, 0, 0.555);
+    --state-red-60: rgba(255, 0, 0, 0.6);
+
+    --state-dark-green-30: rgba(77, 182, 172, 0.3); /* Based on --dark-green-400 */
+
+    --state-orange-60: rgba(255, 167, 38, 0.6); /* Based on --orange-500 */
+
+    /* Feedback Colors (keeping hex for hover) */
     --feedback-red-hover: #dc2626;
-    --feedback-yellow-text: var(--neutral-900);
 
-    --board-light: var(--dark-green-300);
-    --board-dark: var(--dark-green-600);
-
-    --button-primary-bg: var(--accent-primary);
-    --button-primary-hover-bg: var(--dark-green-500);
-    --button-secondary-bg: var(--orange-700);
-    --button-secondary-hover-bg: var(--orange-800);
-    --button-text: var(--neutral-900);
+    /* Button Colors */
     --button-disabled-opacity: 0.6;
-
-    --message-won-bg: var(--dark-green-800);
-    --message-won-text: var(--dark-green-200);
-    --message-won-border: var(--dark-green-500);
-    --message-lost-bg: #5f2120;
-    --message-lost-text: #fecaca;
-    --message-lost-border: var(--feedback-red);
-
-    /* Added: Variables specifically for the modal */
-    --modal-backdrop-bg: rgba(0, 0, 0, 0.6);
-    --modal-content-bg: var(--dark-green-800);
-    --modal-header-border: rgba(255,255,255,.1);
-    --modal-close-hover-bg: var(--dark-green-700);
+    --message-lost-bg: #5f2120; /* Keeping specific hex */
+    --message-lost-text: #fecaca; /* Keeping specific hex */
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1193,8 +1180,8 @@ const GlobalStyle = createGlobalStyle`
   body {
     font-family: 'National Park', serif;
     letter-spacing: .15ch;
-    background-color: var(--background-primary);
-    color: var(--text-primary);
+    background-color: var(--dark-green-900);
+    color: var(--neutral-100);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -1215,7 +1202,7 @@ const GlobalStyle = createGlobalStyle`
   }
   strong {
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--neutral-100);
   }
   em {
     font-style: italic;
@@ -1255,7 +1242,7 @@ const TopContainer = styled(motion.div)`
 const InfoText = styled.p`
   text-align: center;
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--state-white-50);
   line-height: 1.4;
 `;
 
@@ -1277,14 +1264,14 @@ const Title = styled.h1`
   line-height: 100%;
   font-weight: 700;
   text-align: center;
-  color: var(--text-primary);
+  color: var(--neutral-100);
   padding-bottom: 1rem;
 `;
 
 const TurnText = styled.span`
   font-weight: 600;
   text-transform: capitalize;
-  color: var(--text-primary);
+  color: var(--neutral-100);
 `;
 
 const HistoryContainer = styled.div`
@@ -1301,19 +1288,19 @@ const AttemptHistoryItem = styled(motion.div)`
   text-align: left;
   padding-top: 0.75rem;
   border-radius: 0.375rem;
-  background-color: var(--background-secondary);
+  background-color: var(--dark-green-800);
   ${({ $isLastAttempt, $isGameOver }) =>
     $isLastAttempt &&
     $isGameOver &&
     `
-      box-shadow: 0 0 0 2px var(--accent-primary-rgba, rgba(52, 211, 153, 0.3));
+      box-shadow: 0 0 0 2px var(--state-dark-green-30);
     `}
 `;
 
 const AttemptLabel = styled(motion.p)`
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--state-white-50);
 `;
 
 const FeedbackList = styled(motion.ul)`
@@ -1337,20 +1324,20 @@ const FeedbackListItem = styled(motion.div)`
   background-color: ${(props) => {
     switch (props.$feedbackType) {
       case "green":
-        return "var(--feedback-green)";
+        return "var(--dark-green-500)";
       case "yellow":
-        return "var(--feedback-yellow)";
+        return "var(--orange-500)";
       case "red":
-        return "var(--feedback-red)";
+        return "var(--state-red-55)";
       default:
-        return "var(--background-tertiary)";
+        return "var(--dark-green-700)";
     }
   }};
   color: ${(props) =>
     props.$feedbackType === "green" || props.$feedbackType === "yellow"
       ? "var(--neutral-900)"
-      : "var(--neutral-100)"}; // Ensure default text is light
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      : "var(--neutral-100)"};
+  box-shadow: 0 1px 2px var(--state-black-10);
   line-height: 1.2;
   text-align: center;
 `;
@@ -1360,7 +1347,7 @@ const PlaceholderText = styled(motion.span)`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--state-white-25);
   white-space: nowrap;
 `;
 
@@ -1370,7 +1357,7 @@ const BoardWrapper = styled(motion.div)`
   overflow: visible;
 
   & > * {
-    box-shadow: 0 8px 24px var(--shadow-color-rgba, rgba(0, 0, 0, 0.3));
+    box-shadow: 0 8px 24px var(--state-black-30);
   }
 `;
 
@@ -1387,7 +1374,7 @@ const CurrentSequenceDisplay = styled.div`
 const CurrentSequenceLabel = styled.p`
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--state-white-50);
   margin: 0 0 0.375rem 0;
 `;
 
@@ -1395,11 +1382,11 @@ const CurrentSequenceMoves = styled(motion.div)`
   position: relative;
   font-size: 0.85rem;
   word-break: break-all;
-  color: var(--text-primary);
+  color: var(--neutral-100);
   min-height: 3rem;
   line-height: 1.5;
   margin: 0;
-  background-color: var(--background-secondary);
+  background-color: var(--dark-green-800);
   padding: 0.75rem;
   border-radius: 0.25rem;
   display: flex;
@@ -1418,10 +1405,10 @@ const ControlsWrapper = styled.div`
 
 const StyledButton = styled.button`
   padding: 0.6rem 1.2rem;
-  color: var(--button-text);
+  color: var(--neutral-900);
   border-radius: 0.375rem;
-  box-shadow: 0 1px 3px 0 var(--shadow-color-rgba, rgba(0, 0, 0, 0.2)),
-    0 1px 2px 0 var(--shadow-color-rgba, rgba(0, 0, 0, 0.2));
+  box-shadow: 0 1px 3px 0 var(--state-black-20),
+    0 1px 2px 0 var(--state-black-20);
   transition: background-color 150ms ease-in-out, opacity 150ms ease-in-out,
     box-shadow 150ms ease-in-out;
   border: none;
@@ -1432,18 +1419,18 @@ const StyledButton = styled.button`
 
   background-color: ${(props) =>
     props.$isLastAttempt
-      ? "var(--feedback-red)"
+      ? "var(--state-red-55)"
       : props.primary
-      ? "var(--button-primary-bg)"
-      : "var(--button-secondary-bg)"};
+      ? "var(--dark-green-400)"
+      : "var(--orange-700)"};
 
   &:hover:not(:disabled) {
     background-color: ${(props) =>
       props.$isLastAttempt
         ? "var(--feedback-red-hover)"
         : props.primary
-        ? "var(--button-primary-hover-bg)"
-        : "var(--button-secondary-hover-bg)"};
+        ? "var(--dark-green-500)"
+        : "var(--orange-800)"};
   }
   &:focus-visible {
     outline: 2px solid transparent;
@@ -1451,10 +1438,10 @@ const StyledButton = styled.button`
     box-shadow: 0 0 0 3px
       ${(props) =>
         props.$isLastAttempt
-          ? "var(--feedback-red)99"
+          ? "var(--state-red-60)"
           : props.primary
-          ? "var(--accent-primary)99"
-          : "var(--accent-secondary)99"};
+          ? "var(--state-dark-green-60)"
+          : "var(--state-orange-60)"};
   }
   &:disabled {
     opacity: var(--button-disabled-opacity);
@@ -1462,10 +1449,10 @@ const StyledButton = styled.button`
     &:hover {
       background-color: ${(props) =>
         props.$isLastAttempt
-          ? "var(--feedback-red)"
+          ? "var(--state-red-55)"
           : props.primary
-          ? "var(--button-primary-bg)"
-          : "var(--button-secondary-bg)"};
+          ? "var(--dark-green-400)"
+          : "var(--orange-700)"};
     }
   }
 `;
@@ -1480,8 +1467,8 @@ const ButtonContainer = styled.div`
 
 const HowItWorksButton = styled(StyledButton).attrs({ as: "button" })`
   display: inline-block;
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.25);
+  background: var(--state-white-05);
+  color: var(--state-white-25);
   padding: 0.4rem 0.8rem;
   font-size: 0.8rem;
   font-weight: 500;
@@ -1491,7 +1478,7 @@ const HowItWorksButton = styled(StyledButton).attrs({ as: "button" })`
   box-shadow: none;
 
   &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--state-white-10);
   }
   &:active:not(:disabled) {
     transform: none;
@@ -1506,20 +1493,18 @@ const Message = styled(motion.div)`
   border-radius: 0.5rem;
   border-width: 1px;
   border-style: solid;
-  box-shadow: 0 1px 3px 0 var(--shadow-color-rgba, rgba(0, 0, 0, 0.2)),
-    0 1px 2px 0 var(--shadow-color-rgba, rgba(0, 0, 0, 0.2));
+  box-shadow: 0 1px 3px 0 var(--state-black-20),
+    0 1px 2px 0 var(--state-black-20);
   font-size: 1rem;
   font-weight: 500;
   background-color: ${(props) =>
-    props.type === "won" ? "var(--message-won-bg)" : "var(--message-lost-bg)"};
+    props.type === "won" ? "var(--dark-green-800)" : "var(--message-lost-bg)"};
   color: ${(props) =>
     props.type === "won"
-      ? "var(--message-won-text)"
+      ? "var(--dark-green-200)"
       : "var(--message-lost-text)"};
   border-color: ${(props) =>
-    props.type === "won"
-      ? "var(--message-won-border)"
-      : "var(--message-lost-border)"};
+    props.type === "won" ? "var(--dark-green-500)" : "var(--state-red-55)"};
 `;
 
 const SolutionText = styled.p`
@@ -1536,8 +1521,8 @@ const GitHubButton = styled.a`
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem 0.5rem 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
-  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--state-white-50);
+  background-color: var(--state-white-05);
   border-radius: 0.375rem;
   text-decoration: none;
   font-size: 0.8rem;
@@ -1545,11 +1530,11 @@ const GitHubButton = styled.a`
   transition: background-color 150ms ease-in-out;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--state-white-10);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--accent-primary);
+    outline: 2px solid var(--dark-green-400);
     outline-offset: 2px;
   }
 `;
@@ -1560,7 +1545,7 @@ const ModalBackdrop = styled(motion.div)`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--modal-backdrop-bg);
+  background-color: var(--state-black-60);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1569,11 +1554,11 @@ const ModalBackdrop = styled(motion.div)`
 `;
 
 const ModalContent = styled(motion.div)`
-  background-color: var(--modal-content-bg);
-  color: var(--text-primary);
+  background-color: var(--dark-green-800);
+  color: var(--neutral-100);
   padding: 1.5rem 2rem;
   border-radius: 0.5rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 30px var(--state-black-30);
   max-width: 90vw;
   width: 500px;
   max-height: 85vh;
@@ -1590,7 +1575,7 @@ const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--modal-header-border);
+  border-bottom: 1px solid var(--state-white-10);
   padding-bottom: 1rem;
   margin-bottom: 1rem;
 `;
@@ -1598,7 +1583,7 @@ const ModalHeader = styled.div`
 const ModalTitle = styled.h2`
   font-size: 1.4rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--neutral-100);
 `;
 
 const CloseButton = styled.button`
@@ -1611,7 +1596,7 @@ const CloseButton = styled.button`
   width: 2rem;
   height: 2rem;
   font-size: 2rem;
-  color: var(--text-secondary);
+  color: var(--state-white-50);
   cursor: pointer;
   padding: 0.25rem;
   margin: -0.5rem;
@@ -1619,11 +1604,11 @@ const CloseButton = styled.button`
   transition: background-color 0.15s ease, color 0.15s ease;
 
   &:hover {
-    background-color: var(--modal-close-hover-bg);
-    color: var(--text-primary);
+    background-color: var(--dark-green-700);
+    color: var(--neutral-100);
   }
   &:focus-visible {
-    outline: 2px solid var(--accent-primary);
+    outline: 2px solid var(--dark-green-400);
     outline-offset: 1px;
   }
 `;
