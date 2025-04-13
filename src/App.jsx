@@ -441,7 +441,7 @@ function App() {
         setGame(chessInstance);
         setCurrentFen(finalInitialFen); // Set initial board display
 
-        // --- Load Saved Progress from LocalStorage
+        // --- Load Saved Progress from LocalStorage ---
         let loadedStateSuccessfully = false; // Assume failure initially
         const storageKey = `${LOCAL_STORAGE_KEY_PREFIX}${puzzleId}`;
         // Define key for modal seen status
@@ -461,10 +461,8 @@ function App() {
               savedData.gameState === "lost"
             ) {
               console.log(
-                `Saved state for puzzle ${puzzleId} is '${savedData.gameState}'. Ignoring saved state and starting fresh.`
+                `Saved state for puzzle ${puzzleId} is '${savedData.gameState}'. Ignoring saved state and starting fresh, but keeping storage entry.`
               );
-              // Remove the completed state entry to prevent loading it again
-              localStorage.removeItem(storageKey);
               // Do NOT set loadedStateSuccessfully = true;
             }
             // Else, check if the saved data is valid and represents an ongoing game
