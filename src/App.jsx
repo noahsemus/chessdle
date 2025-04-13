@@ -86,8 +86,9 @@ const messageVariants = {
 
 /**
  * Renders the animated feedback UI (colored squares) for a single attempt's move sequence.
+ * Added attemptIndex prop to ensure unique keys/layoutIds across all attempts.
  */
-function AnimatedFeedbackDisplay({ userSequence, feedback }) {
+function AnimatedFeedbackDisplay({ userSequence, feedback, attemptIndex }) {
   if (
     !Array.isArray(feedback) ||
     !Array.isArray(userSequence) ||
@@ -111,11 +112,12 @@ function AnimatedFeedbackDisplay({ userSequence, feedback }) {
     <FeedbackList variants={listVariants} initial="hidden" animate="visible">
       {userSequence.map((move, index) => (
         <FeedbackListItem
-          key={`${index}-${move}`}
+          // Ensure key and layoutId are unique across all attempts by including attemptIndex
+          key={`${attemptIndex}-${index}-${move}`}
           $feedbackType={feedback[index]}
           variants={itemVariants}
           layout
-          layoutId={`${index}-${move}`}
+          layoutId={`${attemptIndex}-${index}-${move}`}
         >
           {userSequence.length > 1 ? `${index + 1}. ` : ""}
           {move || "?"}
@@ -675,7 +677,7 @@ function App() {
             <InfoText>Rating: {puzzle.rating}</InfoText>
             {!isGameOver && (
               <InfoText>
-                {`Attempt ${currentAttemptNumber} of ${MAX_ATTEMPTS}. Find the 
+                {`Attempt ${currentAttemptNumber} of ${MAX_ATTEMPTS}. Find the
                 ${puzzle.solution.length}-move solution. `}
                 <TurnText>{puzzle.playerColor} to move</TurnText>
               </InfoText>
@@ -731,20 +733,16 @@ function App() {
                       $isLastAttempt={index === attemptsHistory.length - 1}
                       $isGameOver={isGameOver}
                       layout
-                      layoutId={index}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <AttemptLabel layout layoutId={`${index}-label`}>
-                        Attempt {index + 1}:
-                      </AttemptLabel>
+                      <AttemptLabel layout>Attempt {index + 1}:</AttemptLabel>
                       <AnimatedFeedbackDisplay
                         userSequence={attempt.sequence}
                         feedback={attempt.feedback}
-                        layout
-                        layoutId={`${index}-label`}
+                        attemptIndex={index}
                       />
                     </AttemptHistoryItem>
                   ))}
