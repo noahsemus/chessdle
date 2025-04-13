@@ -678,7 +678,10 @@ function App() {
       <AppWrapper>
         <Container>
           <TopContainer layout>
-            <Title>Chessdle</Title>
+            <TitleContainer>
+              <Title>Chessdle</Title>
+              <InfoText>Lichess' puzzle of the day, but puzzle-fied!</InfoText>
+            </TitleContainer>
             <InfoText>Rating: {puzzle.rating}</InfoText>
             {!isGameOver && (
               <InfoText>
@@ -923,20 +926,31 @@ const TopContainer = styled(motion.div)`
   padding: 1.5rem;
 `;
 
-const Title = styled.h1`
-  font-size: 3rem;
-  line-height: 100%;
-  font-weight: 700;
-  text-align: center;
-  padding-bottom: 0.75rem;
-  color: var(--text-primary);
-`;
-
 const InfoText = styled.p`
   text-align: center;
   font-size: 0.9rem;
   color: var(--text-secondary);
   line-height: 1.4;
+`;
+
+const TitleContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-bottom: 1rem;
+
+  & > ${InfoText} {
+    font-size: 0.8rem;
+    opacity: 0.75;
+  }
+`;
+
+const Title = styled.h1`
+  font-size: 4rem;
+  line-height: 100%;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary);
 `;
 
 const TurnText = styled.span`
