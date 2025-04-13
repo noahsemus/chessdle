@@ -1096,7 +1096,10 @@ const FeedbackListItem = styled(motion.div)`
   padding: 0.25rem 0.6rem;
   border-radius: 0.375rem;
   font-size: 0.8rem;
-  font-weight: ${(props) => (props.$feedbackType === "green" ? 800 : 500)};
+  font-weight: ${(props) =>
+    props.$feedbackType === "green" || props.$feedbackType === "yellow"
+      ? 800
+      : 500};
   background-color: ${(props) => {
     switch (props.$feedbackType) {
       case "green":
@@ -1109,18 +1112,10 @@ const FeedbackListItem = styled(motion.div)`
         return "var(--border-color)";
     }
   }};
-  color: ${(props) => {
-    switch (props.$feedbackType) {
-      case "green":
-        return "var(--neutral-900)";
-      case "yellow":
-        return "var(--neutral-100)";
-      case "red":
-        return "var(--neutral-100)";
-      default:
-        return "var(--neutral-100)";
-    }
-  }};
+  color: ${(props) =>
+    props.$feedbackType === "green" || props.$feedbackType === "yellow"
+      ? "var(--neutral-900)"
+      : "var(--neutral-100)"};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   line-height: 1.2;
   text-align: center;
