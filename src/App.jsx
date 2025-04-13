@@ -759,7 +759,11 @@ function App() {
           <TopContainer layout>
             <TitleContainer>
               <Title>Chessdle!</Title>
-              <InfoText>Lichess' puzzle of the day, but puzzle-fied</InfoText>
+              <InfoText>
+                Lichess' puzzle of the day, but puzzle-fied.
+                <br></br>
+                Guess the whole sequence!
+              </InfoText>
             </TitleContainer>
             <InfoText>Rating: {puzzle.rating}</InfoText>
             {!isGameOver && (
@@ -772,7 +776,7 @@ function App() {
           </TopContainer>
 
           <>
-            <BoardWrapper layout>
+            <BoardWrapper layout="position">
               <Chessboard
                 // Use puzzle ID and initial FEN in key to ensure re-render on new puzzle,
                 // but NOT attempt number, to prevent reset on failed attempt state change
@@ -1060,6 +1064,7 @@ const Title = styled.h1`
   font-weight: 700;
   text-align: center;
   color: var(--text-primary);
+  padding-bottom: 1rem;
 `;
 
 const TurnText = styled.span`
