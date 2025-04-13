@@ -800,10 +800,25 @@ function App() {
                   {puzzle.solution.length} moves):
                 </CurrentSequenceLabel>
                 <CurrentSequenceMoves layout>
-                  {userMoveSequence.join(" ") ||
-                    (gameState === "playing"
-                      ? "(Drag pieces to make moves)"
-                      : "(Game Over)")}
+                  {userMoveSequence.length > 0 ? (
+                    userMoveSequence.map((move, index) => (
+                      <FeedbackListItem
+                        key={`${index}-${move}`}
+                        $feedbackType={undefined} // Use default/neutral style
+                        variants={itemVariants}
+                        layout
+                      >
+                        {`${index + 1}. `}
+                        {move}
+                      </FeedbackListItem>
+                    ))
+                  ) : (
+                    <span style={{ color: "var(--text-secondary)" }}>
+                      {gameState === "playing"
+                        ? "(Drag pieces to make moves)"
+                        : "(Game Over)"}
+                    </span>
+                  )}
                 </CurrentSequenceMoves>
               </CurrentSequenceDisplay>
 
@@ -1077,11 +1092,11 @@ const FeedbackList = styled(motion.ul)`
   margin: 0;
 `;
 
-const FeedbackListItem = styled(motion.li)`
+const FeedbackListItem = styled(motion.div)`
   padding: 0.25rem 0.6rem;
   border-radius: 0.375rem;
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: ${(props) => (props.$feedbackType === "green" ? 800 : 500)};
   background-color: ${(props) => {
     switch (props.$feedbackType) {
       case "green":
@@ -1094,10 +1109,18 @@ const FeedbackListItem = styled(motion.li)`
         return "var(--border-color)";
     }
   }};
-  color: ${(props) =>
-    props.$feedbackType === "yellow"
-      ? "var(--feedback-yellow-text)"
-      : "var(--button-text, white)"};
+  color: ${(props) => {
+    switch (props.$feedbackType) {
+      case "green":
+        return "var(--neutral-900)";
+      case "yellow":
+        return "var(--neutral-100)";
+      case "red":
+        return "var(--neutral-100)";
+      default:
+        return "var(--neutral-100)";
+    }
+  }};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   line-height: 1.2;
   text-align: center;
@@ -1130,16 +1153,21 @@ const CurrentSequenceLabel = styled.p`
   margin: 0 0 0.375rem 0;
 `;
 
-const CurrentSequenceMoves = styled(motion.p)`
+const CurrentSequenceMoves = styled(motion.div)`
   font-size: 0.85rem;
   word-break: break-all;
   color: var(--text-primary);
-  min-height: 1.5rem;
+  min-height: 3rem;
   line-height: 1.5;
   margin: 0;
   background-color: var(--background-secondary);
-  padding: 1rem;
+  padding: 0.75rem;
   border-radius: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+  justify-content: center;
 `;
 
 const ControlsWrapper = styled.div`
