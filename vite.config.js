@@ -43,8 +43,8 @@ export default defineConfig({
         // ]
       },
       manifest: {
-        short_name: "Chessdle",
-        name: "Chessdle - Daily Chess Puzzle Game",
+        short_name: "Chessdle!",
+        name: "Chessdle!",
         description:
           "Guess the daily Lichess puzzle sequence in a Wordle-like format.",
         icons: [
