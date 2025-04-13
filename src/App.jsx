@@ -782,7 +782,7 @@ function App() {
               <img
                 src="github-mark-white.svg"
                 alt="GitHub logo"
-                style={{ height: "1em", width: "1em" }}
+                style={{ height: "1em", width: "1em", opacity: 0.5 }}
               />
               Check out the source code!
             </GitHubButton>
@@ -1303,8 +1303,8 @@ const GitHubButton = styled.a`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  color: var(--neutral-100);
+  padding: 0.5rem 1rem 0.5rem 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
   background-color: rgba(255, 255, 255, 0.05);
   border-radius: 0.375rem;
   text-decoration: none;
