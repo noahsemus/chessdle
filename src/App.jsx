@@ -827,8 +827,8 @@ function App() {
                         exit={{ opacity: 0 }}
                       >
                         {gameState === "playing"
-                          ? "(Drag pieces to make moves)"
-                          : "(Game Over)"}
+                          ? "Drag pieces to make moves"
+                          : "Game Over"}
                       </PlaceholderText>
                     )}
                   </AnimatePresence>
