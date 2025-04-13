@@ -774,18 +774,6 @@ function App() {
                 <TurnText>{puzzle.playerColor} to move</TurnText>
               </InfoText>
             )}
-            <GitHubButton
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img
-                src="github-mark-white.svg"
-                alt="GitHub logo"
-                style={{ height: "1em", width: "1em", opacity: 0.5 }}
-              />
-              Check out the source code!
-            </GitHubButton>
           </TopContainer>
 
           <>
@@ -933,6 +921,18 @@ function App() {
                 </SolutionText>
               </Message>
             )}
+            <GitHubButton
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img
+                src="github-mark-white.svg"
+                alt="GitHub logo"
+                style={{ height: "1em", width: "1em", opacity: 0.5 }}
+              />
+              Check out the source code!
+            </GitHubButton>
           </AnimatePresence>
         </Container>
       </AppWrapper>
@@ -1042,6 +1042,7 @@ const Container = styled.div`
   padding-bottom: 8rem;
   max-width: 45rem;
   width: 100%;
+  text-align: center;
 `;
 
 const TopContainer = styled(motion.div)`
@@ -1098,6 +1099,7 @@ const AttemptHistoryItem = styled(motion.div)`
   flex-direction: column;
   gap: 0.25rem;
   padding: 1rem;
+  text-align: left;
   padding-top: 0.75rem;
   border-radius: 0.375rem;
   background-color: var(--background-secondary);
@@ -1211,7 +1213,7 @@ const ControlsWrapper = styled.div`
   display: flex;
   justify-content: center;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  padding: 1rem 0;
 `;
 
 const StyledButton = styled.button`
@@ -1311,9 +1313,6 @@ const GitHubButton = styled.a`
   font-size: 0.8rem;
   font-weight: 600;
   transition: background-color 150ms ease-in-out;
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.1);
