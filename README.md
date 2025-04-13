@@ -34,8 +34,8 @@ Chessdle presents you with the Lichess Puzzle of the Day. Your goal is to figure
 2.  **Clone/Download:** Get the project code.
 3.  **Navigate:** Open your terminal in the project directory.
 4.  **Install Dependencies:** Run `npm install` or `yarn install`. Make sure you have `react`, `react-dom`, `chess.js`, `react-chessboard`, and `styled-components` installed.
-5.  **Run:** Start the development server using the command specified in your `package.json` (likely `npm run dev` if using Vite, or `npm start` if using Create React App).
-6.  **Open:** Access the application in your browser at the local address provided (e.g., `http://localhost:5173` or `http://localhost:3000`).
+5.  **Run:** Start the development server using the command `npm run dev`.
+6.  **Open:** Access the application in your browser at the local address provided.
 
 ## License
 
