@@ -69,6 +69,7 @@ const listVariants = {
 const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } },
   hidden: { opacity: 0, y: 10 },
+  exit: { opacity: 0, y: -5, transition: { duration: 0.15 } },
 };
 const messageVariants = {
   visible: {
@@ -117,6 +118,9 @@ function AnimatedFeedbackDisplay({ userSequence, feedback, attemptIndex }) {
           key={`${attemptIndex}-${index}-${move}`}
           $feedbackType={feedback[index]}
           variants={itemVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
           layout
           layoutId={`${attemptIndex}-${index}-${move}`}
         >
@@ -800,25 +804,34 @@ function App() {
                   {puzzle.solution.length} moves):
                 </CurrentSequenceLabel>
                 <CurrentSequenceMoves layout>
-                  {userMoveSequence.length > 0 ? (
-                    userMoveSequence.map((move, index) => (
-                      <FeedbackListItem
-                        key={`${index}-${move}`}
-                        $feedbackType={undefined} // Use default/neutral style
-                        variants={itemVariants}
-                        layout
+                  <AnimatePresence>
+                    {userMoveSequence.length > 0 ? (
+                      userMoveSequence.map((move, index) => (
+                        <FeedbackListItem
+                          key={`${index}-${move}`} // Key only needs to be unique within this list
+                          $feedbackType={undefined} // Use default/neutral style
+                          variants={itemVariants}
+                          initial="hidden"
+                          animate="visible"
+                          exit="exit" // Use exit variant defined in itemVariants
+                          layout
+                        >
+                          {`${index + 1}. `}
+                          {move}
+                        </FeedbackListItem>
+                      ))
+                    ) : (
+                      <PlaceholderText
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
                       >
-                        {`${index + 1}. `}
-                        {move}
-                      </FeedbackListItem>
-                    ))
-                  ) : (
-                    <span style={{ color: "var(--text-secondary)" }}>
-                      {gameState === "playing"
-                        ? "(Drag pieces to make moves)"
-                        : "(Game Over)"}
-                    </span>
-                  )}
+                        {gameState === "playing"
+                          ? "(Drag pieces to make moves)"
+                          : "(Game Over)"}
+                      </PlaceholderText>
+                    )}
+                  </AnimatePresence>
                 </CurrentSequenceMoves>
               </CurrentSequenceDisplay>
 
@@ -1110,16 +1123,24 @@ const FeedbackListItem = styled(motion.div)`
       case "red":
         return "var(--feedback-red)";
       default:
-        return "var(--border-color)";
+        return "var(--background-tertiary)";
     }
   }};
   color: ${(props) =>
     props.$feedbackType === "green" || props.$feedbackType === "yellow"
       ? "var(--neutral-900)"
-      : "var(--neutral-100)"};
+      : "var(--neutral-100)"}; // Ensure default text is light
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   line-height: 1.2;
   text-align: center;
+`;
+
+const PlaceholderText = styled(motion.span)`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.25);
 `;
 
 const BoardWrapper = styled(motion.div)`
@@ -1150,6 +1171,7 @@ const CurrentSequenceLabel = styled.p`
 `;
 
 const CurrentSequenceMoves = styled(motion.div)`
+  position: relative;
   font-size: 0.85rem;
   word-break: break-all;
   color: var(--text-primary);
